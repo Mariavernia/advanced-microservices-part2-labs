@@ -1,8 +1,19 @@
 # Advanced Orders Platform
 
-Reference application for the **Arquitectura de Microservicios Avanzada** courses.
+Reference application for the **Arquitectura de Microservicios Avanzada — Parte 2: Orquestación, Seguridad y Observabilidad** course.
 
 This repository intentionally starts from a small synchronous baseline and evolves during the course. The goal is not to showcase every technology at once, but to make architectural forces observable before introducing the mechanism that addresses them.
+
+## Start here
+
+Students work from a **personal fork** and use **GitHub Codespaces** as the browser-based development workstation. Kubernetes workloads run in the course AKS cluster.
+
+1. Create a Codespace from your fork.
+2. Run `./scripts/login.sh`.
+3. Run `./scripts/preflight.sh`.
+4. Open [`labs/p00-kubernetes-survival-kit/README.md`](labs/p00-kubernetes-survival-kit/README.md).
+
+Full setup instructions: [`docs/getting-started.md`](docs/getting-started.md).
 
 ## P00 baseline
 
@@ -31,20 +42,26 @@ The in-memory catalogue and the diagnostic `servedBy` fields are **training simp
 - Maven multi-module build
 - Spring Boot Actuator
 - OCI containers
-- Kubernetes manifests for P00
+- Kubernetes on Azure Kubernetes Service (AKS)
+- GitHub Codespaces
+- Azure CLI + `kubectl` + `kubelogin` + Helm
 
-## Build
+## Useful commands
 
 ```bash
-mvn test
-mvn package
+make login
+make preflight
+make test
+make package
+make p00-verify
+make p00-clean
 ```
 
-The official course Codespace provides Java and Maven, so no local installation is required during the course.
+The Codespace provides the required tooling, so students do not need to install course software locally.
 
 ## Local execution
 
-If Docker is available:
+Local Docker execution is optional and is not required for the course. If Docker is available:
 
 ```bash
 docker compose up --build
@@ -59,10 +76,13 @@ curl 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2'
 ## Course structure
 
 ```text
+.devcontainer/
+config/
 docs/
 services/
   inventory/
   orders/
+scripts/
 labs/
   p00-kubernetes-survival-kit/
 ```
