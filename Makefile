@@ -1,4 +1,13 @@
-.PHONY: test package local-up local-down p00-verify p00-clean
+.PHONY: login preflight preflight-full test package local-up local-down p00-verify p00-clean
+
+login:
+	./scripts/login.sh
+
+preflight:
+	./scripts/preflight.sh
+
+preflight-full:
+	./scripts/preflight.sh --full
 
 test:
 	mvn test
