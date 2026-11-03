@@ -1,1 +1,0 @@
-Executable permissions for course shell scripts are normalized by .devcontainer/post-create.sh in Codespaces.
