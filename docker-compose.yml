@@ -1,0 +1,21 @@
+services:
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    environment:
+      APP_VERSION: local
+    ports:
+      - "8081:8080"
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    environment:
+      APP_VERSION: local
+      INVENTORY_BASE_URL: http://inventory:8080
+    depends_on:
+      - inventory
+    ports:
+      - "8080:8080"
