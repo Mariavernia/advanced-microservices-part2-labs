@@ -64,11 +64,33 @@ ORDERS_POD=$(kubectl get pod \
   -l app.kubernetes.io/name=orders \
   -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 
-if [[ -n "$ORDERS_POD" ]] && kubectl exec "$ORDERS_POD" -- \
-  curl -fsS --max-time 5 http://inventory:8080/actuator/health >/dev/null 2>&1; then
-  pass "Orders Pod can reach Inventory by Service DNS"
+# Capture stderr: a failed command must be diagnosable as DNS, TCP,
+# missing curl, HTTP response code or an unavailable Kubernetes exec.
+# The test is read-only. Transient post-start failures are retried.
+echo 'Checking Inventory health over Kubernetes Service DNS from Orders...'
+if [[ -z "$ORDERS_POD" ]]; then
+  fail "Orders Pod not found for network test"
 else
-  fail "Orders Pod can reach Inventory by Service DNS"
+  NETWORK_OUTPUT=""
+  NETWORK_OK=false
+  for attempt in 1 2 3; do
+    if NETWORK_OUTPUT="$(kubectl exec "$ORDERS_POD" -- \
+      curl -fsS --connect-timeout 3 --max-time 8 \
+      http://inventory:8080/actuator/health 2>&1)"; then
+      NETWORK_OK=true
+      break
+    fi
+    sleep 2
+  done
+  if [[ "$NETWORK_OK" == "true" ]]; then
+    pass "Orders Pod can reach Inventory by Service DNS ($NETWORK_OUTPUT)"
+  else
+    fail "Orders Pod can reach Inventory by Service DNS"
+    printf '  Last curl/exec output: %s\n' "${NETWORK_OUTPUT:-<empty>}"
+    echo '  Try: kubectl exec deployment/orders -- curl -v --max-time 10 http://inventory:8080/actuator/health'
+    echo '       kubectl get endpointslice -l kubernetes.io/service-name=inventory'
+    echo '       kubectl logs deployment/inventory --tail=50'
+  fi
 fi
 
 echo
