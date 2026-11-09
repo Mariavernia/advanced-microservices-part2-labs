@@ -92,6 +92,17 @@ kubectl rollout status deployment/shipping --timeout=240s
 kubectl get svc shipping
 ```
 
+**Tarea de edición real del manifiesto (sin script):** abre `04-shipping.yaml` en tu fork, cambia **solo** `resources.limits.cpu` del contenedor Shipping de `400m` a `250m` y guarda. Antes de aplicar, explica qué diferencia hay entre ese límite y el `request.cpu=50m`.
+
+```bash
+git diff -- labs/p01-complete-platform/manifests/04-shipping.yaml
+kubectl apply -f labs/p01-complete-platform/manifests/04-shipping.yaml
+kubectl rollout status deployment/shipping --timeout=240s
+kubectl describe pod -l app.kubernetes.io/name=shipping
+```
+
+Comprueba que el Pod nuevo refleja el límite. **Restaura `400m` en el archivo**, vuelve a aplicar el manifiesto y verifica que el sistema termina en el estado original. No modifiques la imagen ni las cuotas del namespace.
+
 Antes de desplegar Notifications, busca `secretKeyRef` en `05-notifications.yaml`. ¿Por qué no debería aparecer aquí un token real? El siguiente **helper de preparación** crea una credencial aleatoria *ficticia* sin imprimirla; generar tokens no es el objetivo de P01:
 
 ```bash
@@ -159,7 +170,7 @@ kubectl rollout restart deployment/orders
 kubectl rollout status deployment/orders
 ```
 
-Repite la llamada y observa HTTP, logs y estado del Pod.
+Repite la llamada y observa el código HTTP **real** (en una prueba de preparación se observó 500 genérico), logs y estado del Pod. No presupongas que el error será 502.
 Construye una hipótesis basada en evidencia: ¿falta un Service?, ¿falta un endpoint?,
 ¿o Orders intenta contactar con el nombre incorrecto?
 
