@@ -15,7 +15,7 @@ spec:
       labels:
         app.kubernetes.io/name: orders
         app.kubernetes.io/part-of: advanced-orders
-        app.kubernetes.io/version: "0.1.0"
+        app.kubernetes.io/version: "0.1.1"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -28,13 +28,13 @@ spec:
             capabilities:
               drop: ["ALL"]
             runAsUser: 10001
-          image: advms26acr4366001b.azurecr.io/advancedorders/orders:0.1.0
+          image: advms26acr4366001b.azurecr.io/advancedorders/orders:0.1.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
           env:
             - name: APP_VERSION
-              value: "0.1.0"
+              value: "0.1.1"
             - name: INVENTORY_BASE_URL
               value: "http://inventory:8080"
