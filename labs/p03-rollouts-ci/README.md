@@ -1,6 +1,6 @@
 # P03 — Rolling deployment, rollback y CI
 
-**Modo:** individual. **Prerequisito:** P01 operativo, preferiblemente tras P02.
+**Modo:** individual; el alumno manipula y diagnostica. **Prerequisito:** P01 operativo, preferiblemente tras P02. Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md).
 **Evidencia de salida:** reconstruir una secuencia de cambios, demostrar reversión y distinguir CI de CD.
 
 ## Escenario
@@ -21,6 +21,8 @@ Abre .github/workflows/test.yml. Identifica cómo se ejecutan Maven, Bash, valid
 Ese workflow implementa **CI**. El despliegue remoto automatizado por alumno con OIDC es un paso adicional y no está habilitado todavía.
 
 ## CORE 2 — Revisión de configuración
+
+**Antes de continuar:** apunta imagen, revisión, `APP_VERSION` y número de ReplicaSets. Predice cuáles cambiarán tras actualizar una variable de entorno del PodTemplate.
 
 Vamos a crear una revisión visible mediante APP_VERSION. **Esto NO constituye la publicación de un nuevo binario ni una etiqueta de imagen distinta.**
 
@@ -43,7 +45,7 @@ Terminal B:
 curl -fsS 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq '{serviceVersion,servedBy}'
 ~~~
 
-Checkpoint: ¿qué campo de PodTemplate ha cambiado? ¿Por qué Kubernetes creó una revisión aunque la imagen de contenedor no cambió?
+**Checkpoint obligatorio:** escribe la revisión anterior y la nueva, el ID del ReplicaSet nuevo, la imagen **antes/después** y el campo `serviceVersion` devuelto por HTTP. ¿Qué campo de PodTemplate ha cambiado? ¿Por qué hay una revisión nueva aunque el binario no cambiase?
 
 ## CORE 3 — Fallo real de la operación de negocio
 
@@ -55,7 +57,7 @@ kubectl rollout status deployment/orders --timeout=180s
 kubectl logs deployment/orders --tail=50
 ~~~
 
-Repite el preview desde Terminal B. Observa tanto estado de pods como respuesta HTTP. ¿El fallo es de readiness o de la dependencia? ¿Qué evidence apoya tu hipótesis?
+Repite el preview desde Terminal B (sin usar `curl -f` cuando necesites inspeccionar el cuerpo de una respuesta 5xx). **No ejecutes aún el rollback.** Obtén una evidencia de `rollout status`, otra del endpoint de negocio y otra de logs. ¿El fallo es de readiness o de la dependencia? ¿Qué evidencia apoya tu hipótesis? ¿Qué otra hipótesis descartas?
 
 Recupera la revisión anterior:
 
@@ -66,7 +68,7 @@ kubectl rollout status deployment/orders --timeout=180s
 curl -fsS 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq
 ~~~
 
-Un rollback deshace la última revisión; no lo ejecutes a ciegas si se han acumulado cambios. Verifica la versión restaurada y comprueba ausencia de la URL inválida.
+Un rollback deshace la última revisión; no lo ejecutes a ciegas si se han acumulado cambios. **Antes de ejecutarlo**, indica qué revisión deseas recuperar y por qué esa revisión fue buena. Verifica después la versión restaurada y comprueba ausencia de la URL inválida. Si no es la revisión esperada, investiga el historial antes de alterar más recursos.
 
 ## CORE 4 — Diseña gates de una entrega real
 
@@ -86,6 +88,10 @@ kubectl get events --sort-by=.lastTimestamp | tail -n 25
 ## STRETCH
 
 Compara Rolling, Blue/Green y Canary desde tres ejes: riesgo de negocio, operabilidad y coste. Propón umbrales mensurables de errores/latencia para promover un canary.
+
+## Evidencia mínima y debrief
+
+Entrega cuatro frases — **predije, cambié, observé, concluyo** — con revisión inicial/final y el resultado HTTP antes/durante/después de la avería. El ejercicio no se considera superado únicamente porque `rollout status` diga `successfully rolled out`.
 
 ## Debrief
 
