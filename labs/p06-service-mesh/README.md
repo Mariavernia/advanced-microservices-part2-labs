@@ -30,15 +30,21 @@ En el Codespace, tras `./scripts/preflight.sh` y con `kubectl` apuntando a **tu 
 ```bash
 kubectl get pods -l app.kubernetes.io/name=orders
 kubectl get pods -l app.kubernetes.io/name=inventory
-kubectl get pods -l app.kubernetes.io/name=orders -o json \
-  | jq -r '.items[].spec.containers[].name'
-kubectl get pods -l app.kubernetes.io/name=inventory -o json \
-  | jq -r '.items[].spec.containers[].name'
+# AKS/Istio puede utilizar sidecars nativos en initContainers.
+# Mostrar ambos tipos en vez de buscar Envoy solo en spec.containers:
+for APP in orders inventory; do
+  echo "=== $APP: contenedores y sidecars ==="
+  kubectl get pods -l app.kubernetes.io/name="$APP" -o json |
+    jq -r '.items[] |
+      "Pod: " + .metadata.name,
+      "Aplicación/containers: " + ([.spec.containers[]?.name] | join(", ")),
+      "Init/native sidecars: " + ([.spec.initContainers[]?.name] | join(", "))'
+done
 ```
 
 **Predije:** ¿qué contiene ahora cada Pod? ¿El Gateway JWT sustituye la identidad de trabajo? ¿Qué agrega Envoy respecto a una `NetworkPolicy`?
 
-**Observé:** el Pod Orders y el Pod Inventory deberían tener aplicación + `istio-proxy`. Si no aparecen, no avances: avisa al instructor.
+**Observé:** los Pods Orders e Inventory deberían tener aplicación + `istio-proxy`. En el modo *native sidecar* de AKS, Envoy está bajo `spec.initContainers` con `restartPolicy: Always`; en el modo clásico está bajo `spec.containers`. Si no aparecen, no avances: avisa al instructor.
 
 ## CORE 2 — Camino funcional Orders → Inventory
 
