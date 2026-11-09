@@ -32,5 +32,22 @@ jobs:
               assert docs and all(isinstance(doc, dict) for doc in docs), path
               print(f"OK {path}: {len(docs)} document(s)")
           PY
+      - name: Validate HA topology JSON
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("labs/p02-resilience/manifests/03-orders-topology-spread.json")
+          doc = json.loads(path.read_text(encoding="utf-8"))
+          constraints = doc["spec"]["template"]["spec"]["topologySpreadConstraints"]
+          assert any(
+              item.get("minDomains") == 2
+              and item.get("maxSkew") == 1
+              and item.get("topologyKey") == "kubernetes.io/hostname"
+              and item.get("whenUnsatisfiable") == "DoNotSchedule"
+              for item in constraints
+          ), "P02-H must require two hostname domains"
+          print("P02-H topology JSON is valid")
+          PY
       - name: Ensure student labs have no estimated durations
         run: python3 scripts/check-no-lab-durations.py
