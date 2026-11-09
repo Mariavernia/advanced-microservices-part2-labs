@@ -200,7 +200,7 @@ A successful response should contain fields similar to:
   "inventoryAvailable": 42,
   "servedBy": "orders-...",
   "inventoryServedBy": "inventory-...",
-  "serviceVersion": "0.1.0"
+  "serviceVersion": "0.1.1"
 }
 ```
 
