@@ -1,6 +1,6 @@
 # P01 — Advanced Orders Platform sobre Kubernetes
 
-**Modo:** individual. **Punto de partida:** P00.
+**Modo:** individual, guiado y manipulando recursos. **Punto de partida:** P00. Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md).
 Este laboratorio no es un curso de Spring: el código ya está desarrollado para que investigues
 cómo se ejecuta y comunica una plataforma distribuida.
 
@@ -42,25 +42,78 @@ Responde antes de aplicar: ¿qué destino utilizará Orders para contactar Inven
 ¿qué destinos conoce el Gateway?, ¿qué pasa si un Service tiene cero endpoints?,
 ¿en qué archivos aparecen `requests` y `limits`?
 
-## 1. Del baseline a seis servicios
+## 1. Del baseline a seis servicios: construye la plataforma paso a paso
+
+**Esta es la ruta del alumno:** aplica recursos individuales, inspecciona cada cambio y explica qué has construido. **No ejecutes `scripts/deploy.sh`**: ese script queda disponible para el instructor o la recuperación de un entorno bloqueado.
+
 Asegúrate de tener el contexto correcto:
 
 ```bash
 ./scripts/preflight.sh
 kubectl config view --minify -o jsonpath='{..namespace}'; echo
+kubectl get deployment,service
 ```
 
-Despliega los recursos del laboratorio:
+### 1A. Configuración: descubre los destinos
+
+Abre `manifests/00-configmaps.yaml`. Identifica el destino usado por Orders y los cinco destinos configurados para el Gateway. ¿Qué nombres corresponden a **Services** de Kubernetes? ¿Qué ocurriría si uno no tuviera endpoints?
 
 ```bash
-bash labs/p01-complete-platform/scripts/deploy.sh
-kubectl get deployments,pods,services
-kubectl get configmap
+kubectl apply -f labs/p01-complete-platform/manifests/00-configmaps.yaml
+kubectl get configmap orders-config gateway-routing -o yaml
 ```
 
-**Checkpoint:** seis Deployments y seis Services. Si aparecen errores, investiga
-`kubectl describe pod ...` y `kubectl get events --sort-by=.lastTimestamp`.
-No cambies URLs de imagen para resolver un problema de permisos de ACR.
+### 1B. Inventario y pedidos: reutiliza el punto de partida de P00
+
+Abre `manifests/01-inventory.yaml` y `02-orders.yaml`. Cada archivo contiene **un Deployment y un Service**. Localiza selectors, labels, imagen, `envFrom`, `requests` y `limits`.
+
+```bash
+kubectl apply -f labs/p01-complete-platform/manifests/01-inventory.yaml
+kubectl apply -f labs/p01-complete-platform/manifests/02-orders.yaml
+kubectl rollout status deployment/inventory --timeout=240s
+kubectl rollout status deployment/orders --timeout=240s
+kubectl get deployments,services,endpointslices
+```
+
+**Checkpoint:** ¿qué recursos han sido *created*, *configured* o *unchanged* al venir de P00? ¿Por qué el Service de Inventory resuelve los Pods correctos?
+
+### 1C. Añade capacidades de negocio una por una
+
+Primero inspecciona `03-payments.yaml` y `04-shipping.yaml`. Predice cuántos objetos Kubernetes creará cada archivo y compruébalo después:
+
+```bash
+kubectl apply -f labs/p01-complete-platform/manifests/03-payments.yaml
+kubectl rollout status deployment/payments --timeout=240s
+kubectl get svc payments
+kubectl get endpointslice -l kubernetes.io/service-name=payments
+
+kubectl apply -f labs/p01-complete-platform/manifests/04-shipping.yaml
+kubectl rollout status deployment/shipping --timeout=240s
+kubectl get svc shipping
+```
+
+Antes de desplegar Notifications, busca `secretKeyRef` en `05-notifications.yaml`. ¿Por qué no debería aparecer aquí un token real? El siguiente **helper de preparación** crea una credencial aleatoria *ficticia* sin imprimirla; generar tokens no es el objetivo de P01:
+
+```bash
+bash labs/p01-complete-platform/scripts/prepare-demo-secret.sh
+kubectl apply -f labs/p01-complete-platform/manifests/05-notifications.yaml
+kubectl rollout status deployment/notifications --timeout=240s
+kubectl describe deployment notifications
+```
+
+**Checkpoint:** relaciona el nombre del Secret con la referencia del Deployment, sin mostrar el valor del token.
+
+### 1D. El Gateway es el último componente
+
+Antes de aplicarlo, abre `manifests/06-api-gateway.yaml` y contesta: ¿dónde obtiene las URL de los destinos? ¿Podría un Gateway estar Ready aunque uno de sus backends devolviera 5xx?
+
+```bash
+kubectl apply -f labs/p01-complete-platform/manifests/06-api-gateway.yaml
+kubectl rollout status deployment/api-gateway --timeout=240s
+kubectl get deployments,pods,services
+```
+
+**Checkpoint final de despliegue:** seis Deployments y seis Services; para cada Service identifica el selector y al menos un endpoint. Si hay errores, empieza por `kubectl describe pod`, eventos y logs; no cambies las imágenes ni los permisos de ACR.
 
 ## 2. Recorre el sistema
 Terminal 1:
@@ -90,7 +143,7 @@ kubectl get endpointslice -l kubernetes.io/service-name=inventory
 kubectl logs deployment/orders --tail=20
 ```
 
-Edita `orders-config` y sustituye `INVENTORY_BASE_URL` por
+**Tu tarea es introducir el fallo manualmente, no ejecutar un script que lo provoque.** Edita `orders-config` y sustituye `INVENTORY_BASE_URL` por
 `http://inventory-incorrect:8080`:
 
 ```bash
@@ -150,6 +203,8 @@ de qué configuración se ha alterado. Propón una verificación preventiva.
 bash labs/p01-complete-platform/scripts/verify.sh
 ```
 
+**Solo ahora** utiliza `verify.sh`. No sirve para desplegar la plataforma ni para corregir el incidente. Entrega cuatro frases: *predije, cambié, observé, concluyo* y al menos una evidencia de EndpointSlice, logs o HTTP.
+
 No es suficiente conseguir PASS. Justifica el resultado y compara:
 
 | Antes (P00) | Después (P01) |
@@ -182,6 +237,10 @@ kubectl exec deploy/api-gateway -- curl -sS http://orders:8080/actuator/health
 
 Si `./scripts/preflight.sh` falla, eso es un bloqueo de entorno, no una tarea
 de diagnóstico de los manifiestos.
+
+## Recuperación excepcional del entorno
+
+Si el ejercicio queda inutilizable tras una manipulación, el instructor puede usar `bash labs/p01-complete-platform/scripts/deploy.sh` para recuperar la plataforma. **No es un paso del recorrido del alumno:** evita saltarse la construcción y el diagnóstico.
 
 ## Limpieza
 
