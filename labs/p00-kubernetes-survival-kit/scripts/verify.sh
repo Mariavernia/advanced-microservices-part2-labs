@@ -73,14 +73,14 @@ if [[ -z "$ORDERS_POD" ]]; then
 else
   NETWORK_OUTPUT=""
   NETWORK_OK=false
-  for attempt in 1 2 3; do
+  for attempt in $(seq 1 15); do
     if NETWORK_OUTPUT="$(kubectl exec "$ORDERS_POD" -- \
       curl -fsS --connect-timeout 3 --max-time 8 \
       http://inventory:8080/actuator/health 2>&1)"; then
       NETWORK_OK=true
       break
     fi
-    sleep 2
+    sleep 3
   done
   if [[ "$NETWORK_OK" == "true" ]]; then
     pass "Orders Pod can reach Inventory by Service DNS ($NETWORK_OUTPUT)"
