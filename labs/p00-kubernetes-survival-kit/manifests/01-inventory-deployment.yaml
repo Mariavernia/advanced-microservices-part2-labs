@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: inventory
-          image: advancedorders.azurecr.io/advancedorders/inventory:0.1.0
+          image: advms26acr4366001b.azurecr.io/advancedorders/inventory:0.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
