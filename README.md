@@ -109,3 +109,11 @@ No se procesan pagos, envíos ni notificaciones reales en este baseline.
 - [P04 — PostgreSQL, PVC y Redis](labs/p04-state-and-cache/README.md).
 
 Estas prácticas incluyen manifiestos o procedimientos ejecutables, pero no están aún validadas desde un Codespace de alumno contra el AKS real. P04 ilustra estado y caché con SQL/Redis, sin afirmar que Orders Java ya persista datos. La liberación a alumnos requiere el ensayo completo y la revisión del instructor.
+
+## P05 — API security (staged)
+
+The [P05 security lab](labs/p05-api-security/README.md) introduces a separate
+JWT-protected API Gateway image. P00–P04 continue to use the existing `0.1.0`
+baseline image. P05 is **not executable** until the instructor provisions a
+shared HTTPS Keycloak OIDC issuer, client/roles and the new `0.2.0-sec` gateway
+image. Do not place passwords, tokens or Keycloak admin credentials in Git.
