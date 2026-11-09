@@ -17,8 +17,17 @@ spec:
         app.kubernetes.io/part-of: advanced-orders
         app.kubernetes.io/version: "0.1.0"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: inventory
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsUser: 10001
           image: advms26acr4366001b.azurecr.io/advancedorders/inventory:0.1.0
           imagePullPolicy: IfNotPresent
           ports:
