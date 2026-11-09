@@ -15,6 +15,8 @@ Students work from a **personal fork** and use **GitHub Codespaces** as the brow
 
 Full setup instructions: [`docs/getting-started.md`](docs/getting-started.md).
 
+**Metodología de los laboratorios:** [`docs/METODOLOGIA-PRACTICAS.md`](docs/METODOLOGIA-PRACTICAS.md). Los alumnos despliegan, modifican y diagnostican recursos manualmente; los scripts de despliegue masivo son utilidades de recuperación para el instructor. Los verificadores se ejecutan **al final** de la actividad y no sustituyen las evidencias ni la explicación.
+
 ## P00 baseline
 
 ```text
@@ -108,7 +110,7 @@ No se procesan pagos, envíos ni notificaciones reales en este baseline.
 - [P03 — Rolling, rollback y CI](labs/p03-rollouts-ci/README.md).
 - [P04 — PostgreSQL, PVC y Redis](labs/p04-state-and-cache/README.md).
 
-Estas prácticas incluyen manifiestos o procedimientos ejecutables, pero no están aún validadas desde un Codespace de alumno contra el AKS real. P04 ilustra estado y caché con SQL/Redis, sin afirmar que Orders Java ya persista datos. La liberación a alumnos requiere el ensayo completo y la revisión del instructor.
+P00, P01 y P02 CORE ya se han validado desde un Codespace de alumno contra el AKS real; P01 superó 16/16 y P02 7/7 con métricas efectivas de CPU. P03 está en ensayo real: revisión APP_VERSION=0.2.0-lab creada y verificada, pero el rollback aún está pendiente. P04 sigue sin validación AKS desde alumno. P04 ilustra estado y caché con SQL/Redis, sin afirmar que Orders Java ya persista datos. La liberación a alumnos requiere el ensayo completo y la revisión del instructor.
 
 ## P05 — API security (staged)
 
