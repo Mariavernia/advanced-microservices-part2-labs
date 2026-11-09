@@ -2,7 +2,7 @@
 
 **Modalidad:** individual desde Codespaces, con una práctica guiada basada en la
 misma Advanced Orders Platform. **Prerequisito:** P01 operativo y Keycloak
-compartido configurado por el instructor. **Sin instalaciones locales.**
+compartido configurado por el instructor. **Sin instalaciones locales.** Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md): predicción, exploración, diagnóstico y evidencia. Los scripts de autenticación evitan manejar credenciales manualmente; no son la solución intelectual de la práctica.
 
 ## Problema
 
@@ -51,8 +51,8 @@ Inspecciona estos archivos:
 ¿Qué ocurre cuando `SPRING_PROFILES_ACTIVE=p05-security`? ¿Por qué la aplicación
 P00–P04 no se protege automáticamente al compilar el código de P05?
 
-Predice qué respuestas recibirán tres peticiones a `/api/payments/methods`:
-sin token, con usuario lector y con administrador.
+**No ejecutes todavía ningún verificador.** Inspecciona las reglas de autorización del Gateway, el mapeo de `realm_access.roles` y las condiciones de validación de JWT (issuer y audience). Predice qué respuestas recibirán tres peticiones a `/api/payments/methods`:
+sin token, con usuario lector y con administrador. Escribe además qué parte se debe a autenticación y cuál a autorización.
 
 ## CORE 2 — Preparar y desplegar el Gateway protegido
 
@@ -65,6 +65,8 @@ bash labs/p05-api-security/scripts/deploy.sh
 kubectl get deployment api-gateway
 kubectl describe deployment api-gateway
 ```
+
+Este **helper prepara la integración**, pero no resuelve el ejercicio: después de ejecutarlo, debes abrir el Deployment y localizar por tu cuenta la imagen, el perfil activo, las variables OIDC y las sondas de salud. Explica qué cambiaría si el emisor anunciado por Keycloak no coincide con el emisor configurado.
 
 El script valida el OIDC metadata y crea un ConfigMap con identificadores
 **no secretos**. El manifiesto usa la imagen distinta `0.2.0-sec` y activa
@@ -103,15 +105,17 @@ Ambos tokens quedan en archivos privados dentro de `~/.cache/advanced-orders`,
 fuera de Git, sin mostrarse en terminal. Usa una cuenta Keycloak con el rol
 correspondiente para cada autenticación. No compartas estos archivos.
 
-## CORE 5 — 401 frente a 403
+## CORE 5 — 401 frente a 403: interpreta el control de acceso
 
-Con `port-forward` todavía en ejecución:
+**Antes de ejecutar el verificador**, prepara una tabla con tus predicciones sobre cinco peticiones (sin copiar ni imprimir tokens). Examina las reglas Java y la configuración del cliente. La obtención y manejo de JWT se mantiene en helpers seguros para no exponer credenciales en el historial del shell, capturas o argumentos de procesos. **No intentes extraer ni pegar los JWT** para hacer peticiones manuales.
+
+Con `port-forward` activo, ejecuta al final la comprobación HTTP segura:
 
 ```bash
 bash labs/p05-api-security/scripts/verify.sh
 ```
 
-Comprueba cinco resultados:
+Completa la tabla con los resultados reales y señala, para cada respuesta, la regla o condición que la explica:
 
 | Petición | Evidencia prevista |
 |---|---|
@@ -123,6 +127,8 @@ Comprueba cinco resultados:
 
 **401:** no hay un token válido para autenticar la petición.  
 **403:** el cliente se ha autenticado, pero no tiene autorización.
+
+**Checkpoint de investigación:** distingue un rechazo por JWT inválido (401), un rechazo por privilegios insuficientes (403) y una autorización exitosa (200). En cada caso identifica la evidencia disponible en política, HTTP y logs, evitando mostrar el valor del JWT.
 
 Inspecciona cómo se convierten los roles Keycloak `realm_access.roles` a
 autoridades de Spring. ¿Qué ocurriría si todos los usuarios recibieran el rol
@@ -166,6 +172,10 @@ Propón controles adicionales: validación de audiencia en servicios internos,
 NetworkPolicy que impida el bypass, gateway TLS, autorización de mínimo privilegio,
 Keycloak accesible con HA, registro de fallos de autorización sin datos sensibles
 y gestión de rotación de claves JWT.
+
+## Evidencia de cierre
+
+Entrega cuatro frases: **predije, cambié/inspeccioné, observé, concluyo**. Incluye la tabla 401/403/200 con su causa, una captura o referencia a la regla de autorización y un límite de seguridad que **no** resuelve la protección del Gateway. Ejecutar el script de verificación sin poder justificar los resultados no completa P05.
 
 ## Cierre y recuperación
 
