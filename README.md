@@ -101,3 +101,11 @@ mediante el script de administración del repositorio privado de infraestructura
 El PR de P01 debe superar CI y un ensayo end-to-end antes de publicarse a los alumnos.
 
 No se procesan pagos, envíos ni notificaciones reales en este baseline.
+
+## Prácticas posteriores preparadas en la rama de revisión
+
+- [P02 — Resiliencia, probes y HPA](labs/p02-resilience/README.md).
+- [P03 — Rolling, rollback y CI](labs/p03-rollouts-ci/README.md).
+- [P04 — PostgreSQL, PVC y Redis](labs/p04-state-and-cache/README.md).
+
+Estas prácticas incluyen manifiestos o procedimientos ejecutables, pero no están aún validadas desde un Codespace de alumno contra el AKS real. P04 ilustra estado y caché con SQL/Redis, sin afirmar que Orders Java ya persista datos. La liberación a alumnos requiere el ensayo completo y la revisión del instructor.
