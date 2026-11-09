@@ -38,24 +38,54 @@ Consulta el namespace seleccionado y ejecuta el preflight:
 kubectl config view --minify -o jsonpath='{..namespace}'; echo
 ```
 
-## CORE B — Desplegar almacenamiento aislado
+## CORE B — Desplegar almacenamiento aislado, por etapas
 
-**Preparación técnica, no resultado del ejercicio:** el helper `deploy.sh` crea PostgreSQL/Redis y el Secret sintético. El trabajo evaluable empieza al inspeccionar cómo se vinculan StatefulSet, PVC y Service, y continuará con operaciones manuales de SQL y Redis. No confundas ejecutar el helper con haber completado el laboratorio.
+**Ruta de trabajo del alumno:** la base de datos y la caché se despliegan **por separado**, inspeccionando los manifiestos y el comportamiento de cada controlador. No comiences ejecutando `scripts/deploy.sh`: ese helper despliega ambos componentes de una vez y queda reservado para la preparación rápida o recuperación del instructor. El helper `prepare-demo-password.sh` sí se utiliza: genera únicamente una contraseña sintética aleatoria sin mostrarla ni guardarla en Git.
 
+### B1 — Antes de crear la base de datos
+
+Abre `manifests/01-orders-db.yaml`. Predice:
+- ¿Qué nombres recibirán el StatefulSet, el Pod y el PVC?
+- ¿Cuál es el propósito de `clusterIP: None`? ¿Qué diferencia existe respecto al Service normal de Redis?
+- ¿Qué aportan `volumeClaimTemplates`, `accessModes: ReadWriteOnce` y `storageClassName: managed-csi`?
+- ¿Qué debería ocurrir con el PVC cuando reemplazas el Pod, sin eliminar el StatefulSet?
+
+Comprueba el namespace y los permisos relevantes; **no necesitas permisos de administración del clúster**:
 
 ```bash
-bash labs/p04-state-and-cache/scripts/deploy.sh
-kubectl get statefulsets,deployments,services,pvc
-kubectl describe statefulset orders-db
-kubectl get pvc dbdata-orders-db-0
-kubectl get storageclass
+./scripts/preflight.sh
+kubectl config view --minify -o jsonpath='{..namespace}'; echo
+kubectl auth can-i create statefulsets
+kubectl auth can-i create persistentvolumeclaims
+kubectl get statefulsets,pvc
 ```
 
-Comprueba que PostgreSQL y Redis tienen Pods listos. No añadas `namespace` a los
-manifiestos ni crees recursos fuera del tuyo.
+### B2 — Preparar la credencial sintética y desplegar PostgreSQL
 
-**Checkpoint:** identifica el nombre del PVC y explica por qué aparece aunque
-el manifiesto no declare un PVC independiente.
+```bash
+bash labs/p04-state-and-cache/scripts/prepare-demo-password.sh
+kubectl apply -f labs/p04-state-and-cache/manifests/01-orders-db.yaml
+kubectl rollout status statefulset/orders-db --timeout=240s
+kubectl get statefulset,pods,pvc,services
+kubectl describe pvc dbdata-orders-db-0
+```
+
+**Checkpoint:** el alumno identifica la relación StatefulSet `orders-db` → Pod `orders-db-0` → PVC `dbdata-orders-db-0`. Un PVC `Bound` es una evidencia de almacenamiento asociado, **no equivale a backup**. Si queda en `Pending`, no lo borres: revisa sus eventos y avisa al instructor.
+
+`StorageClass` es un recurso de ámbito de clúster y el rol limitado del alumno puede impedir ejecutar `kubectl get storageclass`. **No amplíes permisos del alumno para resolverlo**. El instructor puede comprobar las StorageClasses con su identidad administrativa si el PVC no se aprovisiona.
+
+### B3 — Desplegar Redis y comparar arquitecturas
+
+Abre `manifests/02-orders-cache.yaml`. Compara el Deployment de Redis con el StatefulSet de PostgreSQL. Localiza la configuración que desactiva snapshots RDB y AOF; no confundas esta demo con un diseño de caché de producción.
+
+```bash
+kubectl apply -f labs/p04-state-and-cache/manifests/02-orders-cache.yaml
+kubectl rollout status deployment/orders-cache --timeout=180s
+kubectl get deployments,statefulsets,pods,services,pvc
+kubectl exec deployment/orders-cache -- redis-cli ping
+```
+
+**Checkpoint:** ¿qué componente depende de un PVC? ¿Cuál depende de la memoria del contenedor? ¿Qué riesgos de pérdida de estado tiene cada uno? **No ejecutes todavía `seed-demo.sh` ni el verificador**; primero hay que comprender dónde vivirán los datos.
 
 ## CORE C — Un borrador en PostgreSQL
 
@@ -202,5 +232,5 @@ bash labs/p04-state-and-cache/scripts/cleanup.sh
 
 La limpieza estándar elimina los workloads de P04 **pero conserva el PVC y el
 Secret**, para evitar pérdida accidental de datos y permitir recuperar el
-laboratorio. Consulta `scripts/cleanup.sh --help` antes de una limpieza definitiva.
+laboratorio. Al utilizar `managed-csi`, un PVC persistente puede conservar un disco con costes asociados; el instructor decidirá cuándo eliminarlo de forma segura al finalizar todos los ensayos. Consulta `scripts/cleanup.sh --help` antes de una limpieza definitiva.
 No alteres los recursos de otros alumnos.
