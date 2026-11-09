@@ -81,7 +81,15 @@ kubectl get pod -l app.kubernetes.io/name=orders -o wide
 kubectl get endpointslice -l kubernetes.io/service-name=orders
 ~~~
 
-Si HPA muestra valores desconocidos, comprueba que Metrics Server tiene muestras recientes. No cambies cuotas o autorizaciones del clúster como solución.
+Si `kubectl top pods` devuelve **Forbidden** para `pods.metrics.k8s.io`, el problema es RBAC del alumno: primero consulta `kubectl auth can-i list pods.metrics.k8s.io -n "$(kubectl config view --minify -o jsonpath='{..namespace}')"` y avisa al instructor. No intentes concederte permisos.
+
+Si el HPA recién creado muestra **`<unknown>`**, espera a que la API de métricas tenga muestras y a que el controlador procese su primer ciclo. Después vuelve a comprobar:
+```bash
+kubectl top pods -l app.kubernetes.io/name=orders
+kubectl get hpa orders
+kubectl describe hpa orders
+```
+Si sigue en `<unknown>` después de las primeras muestras, solicita al instructor que compruebe la disponibilidad de `v1beta1.metrics.k8s.io` y Metrics Server. **Tener un recurso HPA creado no demuestra que el autoscaling esté operativo**; el verificador CORE también exige recibir un dato real de CPU. No cambies cuotas, permisos o componentes del clúster compartido como solución de alumno.
 
 ## Extensión P02-H — Balanceo y disponibilidad a nivel de nodo
 
