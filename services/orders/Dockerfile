@@ -9,7 +9,7 @@ COPY services/shipping/pom.xml services/shipping/pom.xml
 COPY services/notifications/pom.xml services/notifications/pom.xml
 COPY services/api-gateway/pom.xml services/api-gateway/pom.xml
 COPY services/orders/src services/orders/src
-RUN mvn -B -pl services/orders -am package -DskipTests
+RUN mvn -B -pl services/orders -am package
 
 FROM eclipse-temurin:21-jre
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
