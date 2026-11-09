@@ -6,7 +6,7 @@ COPY pom.xml ./pom.xml
 COPY services/inventory/pom.xml services/inventory/pom.xml
 COPY services/orders/pom.xml services/orders/pom.xml
 COPY services/orders/src services/orders/src
-RUN mvn -pl services/orders -am package -DskipTests
+RUN mvn -B -pl services/orders -am package
 
 FROM eclipse-temurin:21-jre
 RUN apt-get update \
