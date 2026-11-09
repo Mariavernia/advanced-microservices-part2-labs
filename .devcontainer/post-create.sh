@@ -46,8 +46,7 @@ if ! command -v kubelogin >/dev/null 2>&1; then
     /usr/local/bin/kubelogin
 fi
 
-chmod +x scripts/*.sh 2>/dev/null || true
-chmod +x labs/*/scripts/*.sh 2>/dev/null || true
+# Git stores execute bits for all .sh scripts; avoid modifying tracked files.
 
 cat <<'SUMMARY'
 
