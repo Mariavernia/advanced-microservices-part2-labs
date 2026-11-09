@@ -117,6 +117,7 @@ if [[ -n "${CURRENT_NAMESPACE}" ]]; then
   expect_can_i yes "Delete Deployments in own namespace" delete deployments.apps --namespace "${CURRENT_NAMESPACE}"
   expect_can_i yes "Read Pod logs in own namespace" get pods/log --namespace "${CURRENT_NAMESPACE}"
   expect_can_i yes "Read EndpointSlices in own namespace" list endpointslices.discovery.k8s.io --namespace "${CURRENT_NAMESPACE}"
+  expect_can_i yes "Read Pod metrics in own namespace" list pods.metrics.k8s.io --namespace "${CURRENT_NAMESPACE}"
   expect_can_i no  "Create Namespaces" create namespaces
   expect_can_i no  "Create ClusterRoles" create clusterroles.rbac.authorization.k8s.io
 
