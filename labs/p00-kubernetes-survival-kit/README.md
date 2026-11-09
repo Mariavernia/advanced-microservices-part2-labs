@@ -1,6 +1,5 @@
 # P00 — Kubernetes Survival Kit
 
-**Estimated time:** 90 minutes  
 **Mode:** individual  
 **Platform:** Advanced Orders Platform — Orders + Inventory
 

@@ -1,6 +1,6 @@
 # P01 — Advanced Orders Platform sobre Kubernetes
 
-**Duración total:** 210 min. **Modo:** individual. **Punto de partida:** P00.
+**Modo:** individual. **Punto de partida:** P00.
 Este laboratorio no es un curso de Spring: el código ya está desarrollado para que investigues
 cómo se ejecuta y comunica una plataforma distribuida.
 
@@ -35,16 +35,14 @@ Payments, Shipping y Notifications. Orders consulta Inventory de forma síncrona
 - Diagnosticar un fallo por configuración incorrecta con evidencia, repararlo y verificar.
 - Explicar qué capacidades nos siguen faltando para operar el sistema de manera robusta.
 
-## 0. Predicción antes del despliegue — 15 min
-
+## 0. Predicción antes del despliegue
 Abre `manifests/00-configmaps.yaml` y los manifiestos de Orders y API Gateway.
 
 Responde antes de aplicar: ¿qué destino utilizará Orders para contactar Inventory?,
 ¿qué destinos conoce el Gateway?, ¿qué pasa si un Service tiene cero endpoints?,
 ¿en qué archivos aparecen `requests` y `limits`?
 
-## 1. Del baseline a seis servicios — 35 min
-
+## 1. Del baseline a seis servicios
 Asegúrate de tener el contexto correcto:
 
 ```bash
@@ -64,8 +62,7 @@ kubectl get configmap
 `kubectl describe pod ...` y `kubectl get events --sort-by=.lastTimestamp`.
 No cambies URLs de imagen para resolver un problema de permisos de ACR.
 
-## 2. Recorre el sistema — 35 min
-
+## 2. Recorre el sistema
 Terminal 1:
 
 ```bash
@@ -84,8 +81,7 @@ curl -sS 'http://localhost:8080/api/notifications/provider' | jq
 Traza mentalmente el recorrido **Gateway → Orders → Inventory**.
 ¿Cuáles de las llamadas del Gateway se resuelven sin pasar por Orders?
 
-## 3. El fallo de configuración que no se manifiesta inmediatamente — 40 min
-
+## 3. El fallo de configuración que no se manifiesta inmediatamente
 Consulta la configuración y los endpoints:
 
 ```bash
@@ -118,8 +114,7 @@ Construye una hipótesis basada en evidencia: ¿falta un Service?, ¿falta un en
 reaplicando `manifests/00-configmaps.yaml`; después reinicia Orders de forma
 controlada y demuestra que el preview vuelve a funcionar.
 
-## 4. Secret + requests/limits — 25 min
-
+## 4. Secret + requests/limits
 Inspecciona cómo Notifications consume el Secret `notifications-provider`:
 
 ```bash
@@ -137,8 +132,7 @@ Compara los `requests` y `limits` de Orders y Payments:
 ¿puede un Pod estar `Running` y la API no funcionar? ¿Qué ocurriría ante OOM?
 ¿Por qué dejamos las probes para P02?
 
-## 5. Diagnóstico de transferencia — 35 min
-
+## 5. Diagnóstico de transferencia
 Reproduce o recibe del instructor una ruta con fallo 5xx, aunque tanto el Gateway
 como el Service del destino existan. Sin comenzar por reinicios indiscriminados:
 
@@ -151,8 +145,7 @@ como el Service del destino existan. Sin comenzar por reinicios indiscriminados:
 **STRETCH:** repite el diagnóstico con una ruta distinta y sin indicación previa
 de qué configuración se ha alterado. Propón una verificación preventiva.
 
-## 6. Verificación y debrief — 25 min
-
+## 6. Verificación y debrief
 ```bash
 bash labs/p01-complete-platform/scripts/verify.sh
 ```
