@@ -1,6 +1,6 @@
 # P02 — Resiliencia, health probes y escalado horizontal
 
-**Modo:** individual. **Prerequisito:** P01 desplegado y verificado con Orders e Inventory.
+**Modo:** individual, con experimentos manuales. **Prerequisito:** P01 desplegado y verificado con Orders e Inventory. Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md).
 **Evidencia de salida:** diferenciar Pod vivo de Pod preparado, provocar y recuperar un fallo de readiness, explicar el alcance de HPA.
 
 ## Escenario
@@ -16,7 +16,7 @@ kubectl get deployment orders
 kubectl get endpointslice -l kubernetes.io/service-name=orders
 ~~~
 
-Antes de continuar: predice cómo cambia el tráfico cuando la ruta de readiness deja de responder.
+**Antes de ejecutar comandos:** dibuja el recorrido `Service → EndpointSlice → Pod` y predice qué sucederá si un nuevo Pod está `Running` pero `NotReady`. Escribe la predicción para contrastarla con la evidencia.
 
 ## CORE 2 — Tres probes distintas
 
@@ -48,7 +48,7 @@ kubectl get endpointslice -l kubernetes.io/service-name=orders -o yaml
 kubectl rollout status deployment/orders --timeout=30s || true
 ~~~
 
-**Checkpoint:** identifica Pod Running, Pod Ready, destinos activos del Service y la razón por la que Kubernetes puede mantener temporalmente la revisión anterior durante un rollout.
+**Checkpoint obligatorio:** completa con **valores observados**, no con una respuesta teórica: nombre del Pod antiguo, nombre del nuevo, `READY` de ambos, `ready` de sus endpoints y resultado del rollout. Explica por qué un Pod no listo puede seguir en `Running` sin reinicios.
 
 Restaura explícitamente la ruta original:
 
@@ -70,7 +70,7 @@ kubectl top pods
 kubectl describe hpa orders
 ~~~
 
-Identifica requests.cpu=100m y averageUtilization=60%. ¿60% significa 60% de una CPU? Razona sobre la métrica relativa a requests. No esperes necesariamente observar escalado: unas pocas peticiones pueden no provocar suficiente carga.
+Identifica `requests.cpu=100m` y `averageUtilization=60%`. **Calcula primero en millicores** qué consumo corresponde al objetivo del HPA; después compara tu cálculo con `kubectl top` y con `ScalingActive`. ¿60% significa 60% de una CPU? Razona sobre la métrica relativa a requests. No esperes necesariamente observar escalado: unas pocas peticiones pueden no provocar suficiente carga.
 
 ## SUPPORT
 
@@ -115,6 +115,9 @@ bash labs/p02-resilience/scripts/verify-ha.sh
 Compara readiness del proceso y readiness que verifica dependencias remotas. ¿Qué modos de fallo pueden generar tormentas de reinicio? ¿Qué métricas usarías para autoscaling de una cola?
 
 ## Verificación y debrief
+
+Antes de pasar el verificador, escribe una evidencia breve del experimento: **predije, cambié, observé, concluyo**. Incluye un EndpointSlice con `ready=false` y el resultado de la recuperación. Después comprueba el HPA; un recurso creado sin métricas no basta.
+
 
 ~~~bash
 bash labs/p02-resilience/scripts/verify.sh
