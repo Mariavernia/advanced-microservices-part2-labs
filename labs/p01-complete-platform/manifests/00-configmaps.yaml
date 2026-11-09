@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders-config
+  labels:
+    app.kubernetes.io/part-of: advanced-orders
+data:
+  INVENTORY_BASE_URL: "http://inventory:8080"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-routing
+  labels:
+    app.kubernetes.io/part-of: advanced-orders
+data:
+  ORDERS_URL: "http://orders:8080"
+  INVENTORY_URL: "http://inventory:8080"
+  PAYMENTS_URL: "http://payments:8080"
+  SHIPPING_URL: "http://shipping:8080"
+  NOTIFICATIONS_URL: "http://notifications:8080"
