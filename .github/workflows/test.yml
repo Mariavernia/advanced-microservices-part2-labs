@@ -32,3 +32,5 @@ jobs:
               assert docs and all(isinstance(doc, dict) for doc in docs), path
               print(f"OK {path}: {len(docs)} document(s)")
           PY
+      - name: Ensure student labs have no estimated durations
+        run: python3 scripts/check-no-lab-durations.py
