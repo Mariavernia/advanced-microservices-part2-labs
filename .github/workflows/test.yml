@@ -20,6 +20,15 @@ jobs:
       - name: Bash syntax
         run: |
           find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r bash -n
+      - name: Check shell scripts have executable Git mode
+        run: |
+          git ls-files --stage | awk '
+            $4 ~ /[.]sh$/ && $1 != "100755" {
+              print "ERROR: shell script not executable in Git:", $4, "mode=" $1
+              bad=1
+            }
+            END { exit bad }
+          '
       - name: Parse Kubernetes YAML
         run: |
           python3 -m pip install --user pyyaml
