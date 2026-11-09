@@ -1,6 +1,6 @@
 # P04 — Estado persistente, almacenamiento y caché
 
-**Modo:** individual, desde Codespaces. **Prerequisitos:** sesión autenticada, namespace personal, P01 operativo.  
+**Modo:** individual, desde Codespaces. **Prerequisitos:** sesión autenticada, namespace personal, P01 operativo. Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md).  
 **Escenario:** Advanced Orders. **Rol:** ingeniero responsable de garantizar que un borrador de pedido sobreviva al reemplazo de un Pod sin servir datos antiguos desde la caché.
 
 ## Qué queremos demostrar
@@ -40,6 +40,9 @@ kubectl config view --minify -o jsonpath='{..namespace}'; echo
 
 ## CORE B — Desplegar almacenamiento aislado
 
+**Preparación técnica, no resultado del ejercicio:** el helper `deploy.sh` crea PostgreSQL/Redis y el Secret sintético. El trabajo evaluable empieza al inspeccionar cómo se vinculan StatefulSet, PVC y Service, y continuará con operaciones manuales de SQL y Redis. No confundas ejecutar el helper con haber completado el laboratorio.
+
+
 ```bash
 bash labs/p04-state-and-cache/scripts/deploy.sh
 kubectl get statefulsets,deployments,services,pvc
@@ -56,7 +59,7 @@ el manifiesto no declare un PVC independiente.
 
 ## CORE C — Un borrador en PostgreSQL
 
-El siguiente comando crea una tabla de prácticas y un borrador idempotente
+El helper `seed-demo.sh` prepara los datos del escenario; **no resuelve el ejercicio de consistencia ni demuestra persistencia**. El siguiente comando crea una tabla de prácticas y un borrador idempotente
 (en cada namespace existe su propio registro de prueba):
 
 ```bash
@@ -148,6 +151,9 @@ Comprueba que el registro `CONFIRMED` permanece en PostgreSQL.
 conectó a la misma instancia; registra la evidencia antes de concluir.
 
 ## Verificación y debrief
+
+**Antes de `verify.sh`:** registra el resultado SQL antes/después de borrar el Pod PostgreSQL, la diferencia entre PostgreSQL y Redis durante la caché obsoleta y cómo la reparaste manualmente. Formula una política de invalidación; un `PASS` no sustituye esta evidencia.
+
 
 ```bash
 bash labs/p04-state-and-cache/scripts/verify.sh
