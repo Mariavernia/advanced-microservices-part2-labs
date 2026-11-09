@@ -21,9 +21,20 @@ spec:
         app.kubernetes.io/name: orders-cache
         app.kubernetes.io/part-of: advanced-orders
     spec:
+      # Official redis:7.4-alpine image uses UID 999 and GID 1000.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
           image: redis:7.4-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           command: ["redis-server"]
           args: ["--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
           ports:
