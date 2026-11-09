@@ -88,3 +88,16 @@ labs/
 ```
 
 The platform will grow incrementally. Do not treat the P00 architecture as the target production architecture.
+
+## P01 — Advanced Orders completa (en validación)
+
+La práctica [P01](labs/p01-complete-platform/README.md) añade API Gateway, Payments,
+Shipping y Notifications a Orders e Inventory. ConfigMap, Secret sintético,
+requests/limits y diagnóstico de configuración se trabajan sobre seis workloads.
+
+**Importante:** el ejercicio requiere seis imágenes de contenedor publicadas en el
+ACR de la formación. Los nombres `advancedorders.azurecr.io` del manifiesto
+son marcadores hasta validar el nombre real del registry. El PR de P01 debe superar
+los tests y una prueba end-to-end antes de quedar incorporado a `main`.
+
+No se procesan pagos, envíos ni notificaciones reales en este baseline.

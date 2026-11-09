@@ -26,3 +26,12 @@ p00-verify:
 
 p00-clean:
 	./labs/p00-kubernetes-survival-kit/scripts/cleanup.sh
+
+p01-deploy:
+	bash labs/p01-complete-platform/scripts/deploy.sh
+
+p01-verify:
+	bash labs/p01-complete-platform/scripts/verify.sh
+
+p01-clean:
+	bash labs/p01-complete-platform/scripts/cleanup.sh

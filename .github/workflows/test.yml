@@ -1,0 +1,34 @@
+name: Source and YAML checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Maven tests for all modules
+        run: mvn -B --no-transfer-progress test
+      - name: Bash syntax
+        run: |
+          find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r bash -n
+      - name: Parse Kubernetes YAML
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 - <<'PY'
+          import yaml
+          from pathlib import Path
+          files = list(Path("labs").rglob("*.yaml"))
+          for path in files:
+              docs = list(yaml.safe_load_all(path.read_text()))
+              assert docs and all(isinstance(doc, dict) for doc in docs), path
+              print(f"OK {path}: {len(docs)} document(s)")
+          PY
