@@ -1,0 +1,13 @@
+# P06 learner namespace only: do NOT add a namespace field to this YAML.
+# Uses exact Inventory Pod selector from P01.
+# Never create a mesh-wide PeerAuthentication for this course.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: inventory-strict-mtls
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inventory
+  mtls:
+    mode: STRICT
