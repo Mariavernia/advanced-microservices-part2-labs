@@ -50,14 +50,16 @@ kubectl rollout status deployment/orders --timeout=30s || true
 
 **Checkpoint:** identifica Pod Running, Pod Ready, destinos activos del Service y la razón por la que Kubernetes puede mantener temporalmente la revisión anterior durante un rollout.
 
-Restaura la definición del repositorio:
+Restaura explícitamente la ruta original:
 
 ~~~bash
-kubectl apply -f labs/p02-resilience/manifests/01-orders-probes.yaml
+kubectl patch deployment orders --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/actuator/health/readiness"}]'
 kubectl rollout status deployment/orders --timeout=180s
+kubectl get pods -l app.kubernetes.io/name=orders
+kubectl get endpointslice -l kubernetes.io/service-name=orders
 ~~~
 
-Si el cambio imperativo persiste por conflicto de historial, inspecciona kubectl rollout history y utiliza kubectl rollout undo deployment/orders, confirmando siempre qué revisión restauras.
+**¿Por qué un segundo patch en vez de un simple `kubectl apply`?** El cambio anterior fue imperativo; un apply de un YAML sin cambios puede no deshacerlo, según el historial de ownership/last-applied. Esta restauración explícita es reproducible. Observa que el controlador puede reutilizar un ReplicaSet ya existente cuya plantilla coincide con la versión restaurada.
 
 ## CORE 4 — HPA y límites
 
