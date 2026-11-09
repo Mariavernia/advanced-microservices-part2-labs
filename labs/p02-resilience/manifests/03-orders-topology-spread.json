@@ -11,7 +11,8 @@
               "matchLabels": {
                 "app.kubernetes.io/name": "orders"
               }
-            }
+            },
+            "minDomains": 2
           }
         ]
       }

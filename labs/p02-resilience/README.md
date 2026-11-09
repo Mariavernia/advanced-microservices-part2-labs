@@ -81,6 +81,25 @@ kubectl get endpointslice -l kubernetes.io/service-name=orders
 
 Si HPA muestra valores desconocidos, comprueba que Metrics Server tiene muestras recientes. No cambies cuotas o autorizaciones del clúster como solución.
 
+## Extensión P02-H — Balanceo y disponibilidad a nivel de nodo
+
+Después de configurar las probes y el HPA, puedes realizar la extensión
+[HA-BALANCEO.md](HA-BALANCEO.md). **No forma parte de la verificación CORE**:
+requiere dos nodos de aplicaciones Ready y con capacidad disponible. Si el
+clúster está apagado o los nodos no son accesibles, no ejecutes ni intentes
+modificar la infraestructura compartida.
+
+En P02-H se demuestra distribución entre nodos mediante
+`topologySpreadConstraints`, se observa el comportamiento de `Service` y se
+analiza el alcance de un `PodDisruptionBudget`. El fallo de nodo/drain solo
+puede ejecutarlo el instructor en condiciones controladas.
+
+La verificación específica es:
+
+~~~bash
+bash labs/p02-resilience/scripts/verify-ha.sh
+~~~
+
 ## STRETCH
 
 Compara readiness del proceso y readiness que verifica dependencias remotas. ¿Qué modos de fallo pueden generar tormentas de reinicio? ¿Qué métricas usarías para autoscaling de una cola?
