@@ -72,6 +72,17 @@ kubectl describe pvc dbdata-orders-db-0
 
 **Checkpoint:** el alumno identifica la relación StatefulSet `orders-db` → Pod `orders-db-0` → PVC `dbdata-orders-db-0`. Un PVC `Bound` es una evidencia de almacenamiento asociado, **no equivale a backup**. Si queda en `Pending`, no lo borres: revisa sus eventos y avisa al instructor.
 
+ 
+**Seguridad del contenedor:** el StatefulSet usa `runAsNonRoot=true`, UID/GID `70` del usuario `postgres` de la imagen Alpine, `fsGroup=70` para permisos del Azure Disk, `seccompProfile=RuntimeDefault`, `allowPrivilegeEscalation=false` y `capabilities.drop=[ALL]`. Antes de desplegar, identifica estos campos y razona por qué PostgreSQL necesita escribir en el volumen incluso cuando no se ejecuta como root. Si un manifiesto anterior mostraba `would violate PodSecurity "restricted:latest"`, actualiza el fork del curso y reaplica la definición endurecida (sin borrar StatefulSet ni PVC). Comprueba:
+
+```bash
+kubectl exec orders-db-0 -- id
+kubectl exec orders-db-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_isready -U orders -d ordersdb'
+kubectl get pod orders-db-0 -o jsonpath='{.spec.securityContext}'; echo
+```
+
+Un Pod `1/1 Ready` con almacenamiento `Bound` confirma que la configuración funciona; **no implica todavía que hayamos demostrado persistencia** (eso se comprobará al escribir datos y borrar/recrear el Pod en CORE D).
+
 `StorageClass` es un recurso de ámbito de clúster y el rol limitado del alumno puede impedir ejecutar `kubectl get storageclass`. **No amplíes permisos del alumno para resolverlo**. El instructor puede comprobar las StorageClasses con su identidad administrativa si el PVC no se aprovisiona.
 
 ### B3 — Desplegar Redis y comparar arquitecturas
@@ -85,7 +96,7 @@ kubectl get deployments,statefulsets,pods,services,pvc
 kubectl exec deployment/orders-cache -- redis-cli ping
 ```
 
-**Checkpoint:** ¿qué componente depende de un PVC? ¿Cuál depende de la memoria del contenedor? ¿Qué riesgos de pérdida de estado tiene cada uno? **No ejecutes todavía `seed-demo.sh` ni el verificador**; primero hay que comprender dónde vivirán los datos.
+**Checkpoint:** Redis utiliza UID 999/GID 1000 de la imagen Alpine y el mismo baseline `restricted` de capacidades/seccomp/no escalada. Comprueba con `kubectl exec deployment/orders-cache -- id`. ¿Qué componente depende de un PVC? ¿Cuál depende de la memoria del contenedor? ¿Qué riesgos de pérdida de estado tiene cada uno? **No ejecutes todavía `seed-demo.sh` ni el verificador**; primero hay que comprender dónde vivirán los datos.
 
 ## CORE C — Un borrador en PostgreSQL
 
