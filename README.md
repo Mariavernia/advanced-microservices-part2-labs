@@ -95,9 +95,9 @@ La práctica [P01](labs/p01-complete-platform/README.md) añade API Gateway, Pay
 Shipping y Notifications a Orders e Inventory. ConfigMap, Secret sintético,
 requests/limits y diagnóstico de configuración se trabajan sobre seis workloads.
 
-**Importante:** el ejercicio requiere seis imágenes de contenedor publicadas en el
-ACR de la formación. Los nombres `advancedorders.azurecr.io` del manifiesto
-son marcadores hasta validar el nombre real del registry. El PR de P01 debe superar
-los tests y una prueba end-to-end antes de quedar incorporado a `main`.
+**Importante:** este curso utiliza el ACR real `advms26acr4366001b.azurecr.io`.
+El equipo instructor debe publicar las seis imágenes `advancedorders/*:0.1.0`
+mediante el script de administración del repositorio privado de infraestructura.
+El PR de P01 debe superar CI y un ensayo end-to-end antes de publicarse a los alumnos.
 
 No se procesan pagos, envíos ni notificaciones reales en este baseline.

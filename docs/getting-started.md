@@ -2,6 +2,11 @@
 
 The course is designed to run entirely from the browser.
 
+**Preflight dependency:** the instructor must have started the AKS cluster and
+published the course images in the configured Azure Container Registry.
+If the course cluster is stopped, `login.sh` and `preflight.sh` will fail as expected.
+Do not troubleshoot this by changing namespace, identity or image URLs.
+
 ## 1. Work from your personal fork
 
 Use the fork assigned to you for this course. Your work, commits and GitHub Actions belong to that fork rather than to the instructor repository.
