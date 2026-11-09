@@ -70,6 +70,12 @@ curl -fsS 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq
 
 Un rollback deshace la última revisión; no lo ejecutes a ciegas si se han acumulado cambios. **Antes de ejecutarlo**, indica qué revisión deseas recuperar y por qué esa revisión fue buena. Verifica después la versión restaurada y comprueba ausencia de la URL inválida. Si no es la revisión esperada, investiga el historial antes de alterar más recursos.
 
+### Observación importante: rollback operativo frente a estado declarativo
+
+Durante el ensayo real, la modificación de `INVENTORY_BASE_URL` produjo **HTTP 502**, código de aplicación `INVENTORY_UNAVAILABLE`, mientras `rollout status` devolvía éxito. El rollback restauró `APP_VERSION=0.2.0-lab` y eliminó el override erróneo; el Gateway volvió a responder 200. Un ensayo anterior, realizado con un ConfigMap alterado, devolvió un 500 genérico: **registra el estado HTTP real y no supongas que todos los fallos tienen el mismo código**.
+
+Es posible que `kubectl rollout undo` advierta que no actualiza la anotación `kubectl.kubernetes.io/last-applied-configuration`. La revisión operativa se restaura, **pero eso no sincroniza el manifiesto versionado en Git ni la anotación del último `kubectl apply`**. Si luego ejecutas `kubectl apply` sobre un manifiesto antiguo de Orders, puedes alterar las probes o la variable APP_VERSION. Durante este laboratorio no vuelvas a aplicar a ciegas el YAML antiguo de P01: inspecciona antes `kubectl get deployment orders -o yaml` y prepara una definición declarativa coherente con el estado deseado.
+
 ## CORE 4 — Diseña gates de una entrega real
 
 Documenta qué comprobarías para promover la revisión: tests de servicio, validación de manifiestos, resultados de observabilidad y prueba funcional. ¿Qué señales justificarían rollback automático?
@@ -100,4 +106,4 @@ Entrega cuatro frases — **predije, cambié, observé, concluyo** — con revis
 3. ¿Qué principio de mínimo privilegio debe cumplir un futuro CD desde forks?
 4. ¿Cómo evitarías que un alumno modifique recursos del compañero?
 
-**Estado del laboratorio:** preparado en Git; requiere prueba real de rollout y rollback con una cuenta de alumno.
+**Estado técnico:** rollout y rollback validados en AKS con la identidad real `student02` desde un fork independiente. La implementación de CD automático por alumno con GitHub OIDC sigue pendiente; este ensayo valida la parte operativa y el pipeline de CI existente, no un CD completo.
