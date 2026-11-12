@@ -9,7 +9,7 @@
 
 En P05 protegimos el API Gateway con OAuth/OIDC y JWT. Eso **no protege necesariamente** las llamadas directas entre Orders e Inventory. Queremos demostrar la diferencia entre **identidad/autorización del usuario** (JWT en el Gateway), **identidad de carga de trabajo** (certificados de Istio) y **política de transporte** (mTLS STRICT).
 
-Istio ya está instalado por el instructor como **AKS-managed Istio addon**, revisión `asm-1-31`. La revisión instalada es `asm-1-31`. El instructor prepara la inyección selectiva y persistente de Orders e Inventory; no uses `istio-injection=enabled` en este addon. No se cambia el namespace de otros alumnos ni `security` ni `course-ingress`.
+Istio ya está instalado por el instructor como **AKS-managed Istio addon**, revisión `asm-1-31`. El instructor prepara la inyección selectiva y persistente de Orders e Inventory; no uses `istio-injection=enabled` en este addon. No se cambia el namespace de otros alumnos ni `security` ni `course-ingress`.
 
 ## Gate del instructor (antes de comenzar)
 
@@ -113,14 +113,14 @@ kubectl delete -f labs/p06-service-mesh/manifests/01-inventory-strict-mtls.yaml 
 
 Repite la llamada directa del Gateway: debe volver a HTTP 200.
 
-**No retires tú la etiqueta del namespace**, porque es un recurso compartido administrado por el instructor; no borres otros recursos Istio.
+**No modifiques las etiquetas del namespace**, porque es un recurso administrado por el instructor. La inyección selectiva se configura en las plantillas de Orders e Inventory mediante `istio.io/rev=asm-1-31`. No borres otros recursos Istio.
 
 Para obtener evidencia de mTLS, consulta las métricas del proxy receptor sin mostrar credenciales:
 
 ```bash
-kubectl exec deploy/inventory -c inventory -- \\
-  curl -fsS --max-time 8 http://127.0.0.1:15090/stats/prometheus | \\
-  grep '^istio_requests_total' | grep 'connection_security_policy="mutual_tls"' | \\
+kubectl exec deploy/inventory -c inventory -- \
+  curl -fsS --max-time 8 http://127.0.0.1:15090/stats/prometheus | \
+  grep '^istio_requests_total' | grep 'connection_security_policy="mutual_tls"' | \
   grep 'source_workload="orders"'
 ```
 
@@ -128,7 +128,7 @@ La identidad SPIFFE puede corresponder a la cuenta de servicio `default` compart
 
 ## SUPPORT — Diagnóstico
 
-- Pod sin `istio-proxy`: comprobar si era existente y necesita `rollout restart`; solo instructor puede gestionar la etiqueta de namespace.
+- Pod sin `istio-proxy`: comprobar la etiqueta `istio.io/rev` en la plantilla del Deployment y si el Pod necesita un nuevo rollout. Avisar al instructor antes de cambiar la configuración de inyección.
 - Pod `Pending`: comprobar `kubectl describe pod`, cuotas y memoria; sidecar consume recursos.
 - Pod `CrashLoopBackOff`: comprobar logs separando `-c istio-proxy` de contenedor Java.
 - Error de acceso tras STRICT: diferenciar sidecar no inyectado, mTLS, `NetworkPolicy`, endpoint, JWT o service routing.
