@@ -93,11 +93,15 @@ La disponibilidad del proceso no debe depender de iniciar sesión como usuario.
 
 ## CORE 4 — Obtener tokens mediante Device Authorization Grant
 
-**No uses usuarios o contraseñas en scripts.** El instructor facilitará las
-cuentas de práctica. El código del dispositivo se valida en el navegador.
+**No uses usuarios o contraseñas en scripts.** El instructor facilitará individualmente tus cuentas de práctica `studentNN-reader` y `studentNN-admin` (NN es tu número de alumno). El código del dispositivo se valida en el navegador.
 
 ```bash
 bash labs/p05-api-security/scripts/device-login.sh reader
+```
+
+Completa el login del lector en una ventana privada. Cierra esa sesión privada antes de iniciar el segundo flujo (una sesión SSO existente podría reutilizar la cuenta anterior):
+
+```bash
 bash labs/p05-api-security/scripts/device-login.sh admin
 ```
 
@@ -177,7 +181,9 @@ y gestión de rotación de claves JWT.
 
 Entrega cuatro frases: **predije, cambié/inspeccioné, observé, concluyo**. Incluye la tabla 401/403/200 con su causa, una captura o referencia a la regla de autorización y un límite de seguridad que **no** resuelve la protección del Gateway. Ejecutar el script de verificación sin poder justificar los resultados no completa P05.
 
-## Cierre y recuperación
+## Cierre y recuperación (solo si lo indica el instructor)
+
+Conserva el Gateway protegido y las credenciales locales para P06/P07. No ejecutes el cleanup entre prácticas salvo indicación del instructor.
 
 ```bash
 bash labs/p05-api-security/scripts/cleanup.sh
@@ -187,5 +193,4 @@ rm -f ~/.cache/advanced-orders/reader.jwt ~/.cache/advanced-orders/admin.jwt
 El cleanup restaura la imagen y configuración del Gateway de P01 en tu namespace.
 No modifica el Keycloak compartido ni los datos de otros alumnos.
 
-**Estado de aceptación:** implementación preparada en rama, pendiente de
-Keycloak compartido, imagen `0.2.0-sec` y ensayo real AKS/Device Grant.
+**Estado de aceptación:** CORE PASS desde Codespaces con Keycloak HTTPS y Device Grant; 32 cuentas de aplicación preparadas para la cohorte de 16. La comprobación individual se realiza durante la práctica.
