@@ -13,7 +13,7 @@ Una petición a `Orders` tarda demasiado o falla porque `Inventory` introduce la
 3. ¿Qué señal aportan métricas, logs y **trazas distribuidas reales**?
 4. ¿Cómo verificas recuperación y diferencia entre síntoma y causa?
 
-El alumno no instalará Prometheus/Grafana/Jaeger en su namespace. La infraestructura de observabilidad será compartida y administrada por el instructor para limitar costes, seguridad y carga del AKS.
+El diseño inicial contemplaba observabilidad compartida. Para el primer piloto se utiliza **Jaeger temporal y privado en student02**, con almacenamiento en memoria y acceso por port-forward. Así evitamos que alumnos distintos puedan consultar trazas ajenas. La arquitectura definitiva de clase (compartida con aislamiento o instancias efímeras por namespace) se decidirá tras medir consumo y concurrencia.
 
 ## Recorrido propuesto (sin comandos operativos ficticios)
 
@@ -26,6 +26,20 @@ El alumno no instalará Prometheus/Grafana/Jaeger en su namespace. La infraestru
 **CORE 4 — Logs:** filtrar logs de la petición/trace_id sin publicar secretos ni JWT. Diferenciar log local de correlación distribuida.
 
 **CORE 5 — Recuperación:** revertir el fallo inducido, comprobar que mejoran las señales y redactar RCA de 5 líneas con evidencias.
+
+## Piloto 0 — backend de trazas (preparado, pendiente de prueba)
+
+El manifiesto `manifests/01-jaeger-pilot.yaml` crea Jaeger 2.23.0 en el namespace actual, con un Deployment y un Service ClusterIP, sin PVC ni exposición pública. Solo requiere el RBAC ya concedido para Deployments/Services. Se fijan 100m/192Mi de requests y 500m/512Mi de límites; validar consumo real. No representa todavía trazas de la aplicación.
+
+```bash
+kubectl apply --dry-run=server -f labs/p07-observability/manifests/01-jaeger-pilot.yaml
+kubectl apply -f labs/p07-observability/manifests/01-jaeger-pilot.yaml
+kubectl rollout status deployment/p07-jaeger --timeout=180s
+kubectl get pods,svc -l app.kubernetes.io/name=p07-jaeger
+kubectl port-forward service/p07-jaeger 16686:16686
+```
+
+Abrir la UI mediante el puerto privado de Codespaces. El endpoint `/api/services` debe responder; no se espera que aparezcan Orders/Inventory hasta instrumentarlos. Cleanup: `kubectl delete -f labs/p07-observability/manifests/01-jaeger-pilot.yaml`. Jaeger utiliza almacenamiento efímero: se pierden las trazas cuando se recrea el Pod.
 
 ## Gate para implementación (instructor)
 
