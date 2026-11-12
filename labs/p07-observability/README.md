@@ -1,6 +1,6 @@
 # P07 — Investigar un incidente distribuido con métricas, trazas y logs
 
-> **Estado: Jaeger, instrumentación Java y traza Orders → Inventory validados en student02 (12/11/2026). Gateway instrumentado y Ready; pendiente traza completa autenticada, incidente y aceptación CORE.**  
+> **Estado: Jaeger, instrumentación Java y traza Orders → Inventory validados en student02 (12/11/2026). Traza autenticada Gateway → Orders → Inventory validada; imagen de incidente publicada; pendiente ensayo de latencia y aceptación CORE.**  
 > **Modalidad:** Codespaces en fork + AKS; sin instalaciones locales.  
 > **Predecesores:** P01–P06.
 
@@ -56,7 +56,7 @@ bash labs/p07-observability/scripts/instrument.sh gateway
 CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh gateway
 ```
 
-El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContainer y emptyDir, configura JAVA_TOOL_OPTIONS, nombres de servicio y OTLP HTTP/protobuf hacia Jaeger dentro del mismo namespace. Conserva imágenes y variables existentes de P05 y etiquetas P06. Ajusta memoria de las aplicaciones instrumentadas a 256Mi request y 768Mi limit para el piloto. Añade startupProbe (hasta 300 s antes de habilitar liveness) y readinessProbe HTTP; se conservan las sondas liveness existentes. Si falla un rollout, recoge estados y logs de la revisión fallida antes de intentar recuperar las revisiones originales de esa fase. El fallo de Gateway no revierte Orders e Inventory ya instrumentados en la fase backend. Validación real: una traza de negocio Orders → Inventory con 3 spans (10,7 ms total, 6,4 ms cliente HTTP, 2,6 ms servidor Inventory). Gateway instrumentado y Ready; falta verificar petición autenticada completa con los tres servicios. Las métricas y logs OTLP están deshabilitados en esta fase, porque Jaeger es backend de trazas. 
+El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContainer y emptyDir, configura JAVA_TOOL_OPTIONS, nombres de servicio y OTLP HTTP/protobuf hacia Jaeger dentro del mismo namespace. Conserva imágenes y variables existentes de P05 y etiquetas P06. Ajusta memoria de las aplicaciones instrumentadas a 256Mi request y 768Mi limit para el piloto. Añade startupProbe (hasta 300 s antes de habilitar liveness) y readinessProbe HTTP; se conservan las sondas liveness existentes. Si falla un rollout, recoge estados y logs de la revisión fallida antes de intentar recuperar las revisiones originales de esa fase. El fallo de Gateway no revierte Orders e Inventory ya instrumentados en la fase backend. Validación real: una traza de negocio Orders → Inventory con 3 spans (10,7 ms total, 6,4 ms cliente HTTP, 2,6 ms servidor Inventory). Gateway instrumentado y traza autenticada completa confirmada: 3 servicios, 7 spans. Las métricas y logs OTLP están deshabilitados en esta fase, porque Jaeger es backend de trazas. 
 
 ## Gate para implementación (instructor)
 
@@ -80,8 +80,13 @@ Comparar cardinalidad de métricas, retención, sampling y costes; analizar una 
 - Captura Jaeger: trace ID `1f5c1b1659d115ab6de79f48ab8621bd`, 2 servicios, 3 spans, 10.7 ms total. Orders client 6.4 ms, Inventory server 2.6 ms.
 - No confundir el arranque saludable del Gateway con validación de autenticación ni con prueba de la traza completa.
 
-## Piloto 2 — Incidente de latencia (código preparado, imagen aún por construir)
+## Piloto 2 — Incidente de latencia (imagen publicada, ensayo pendiente)
 
 Inventory añade una propiedad de entrenamiento `training.inventory.delay-ms` (variable `TRAINING_INVENTORY_DELAY_MS`), con valor por defecto 0 y máximo efectivo de 3000 ms. La latencia se introduce en el controlador para que aparezca dentro del span receptor y se registra con un warning; no afecta a las sondas Actuator. No aplicar a imágenes P01–P06 ni publicar un tag existente.
 
-El instructor construirá el nuevo tag `advancedorders/inventory:0.1.0-p07` en ACR desde esta rama. Luego se cambiará solamente la imagen del Deployment Inventory en el namespace piloto, preservando sus sidecars y su agente. Se habilitará el endpoint interno Actuator metrics para observar `http.server.requests` y se añadirá trace_id/span_id al patrón de logs. Primero validar delay=0; después comparar con delay=1500 y restaurar 0. Los detalles operativos se cerrarán tras probar la imagen.
+El instructor ha construido el nuevo tag `advancedorders/inventory:0.1.0-p07` en ACR desde esta rama. Luego se cambiará solamente la imagen del Deployment Inventory en el namespace piloto, preservando sus sidecars y su agente. Se habilitará el endpoint interno Actuator metrics para observar `http.server.requests` y se añadirá trace_id/span_id al patrón de logs. Primero validar delay=0; después comparar con delay=1500 y restaurar 0. Los detalles operativos se cerrarán tras probar la imagen.
+
+### Evidencia 12/11/2026 — traza completa y build
+
+- Captura Jaeger de una petición autenticada: 3 servicios, 7 spans, profundidad 5, HTTP 200. Gateway 5.8 s, Orders 16.3 ms, Inventory 2.3 ms. Primer span HTTP saliente de Gateway 3.8 s: identificar destino mediante atributos, no asumir que es Keycloak. Aviso Incomplete compatible con padre externo generado manualmente mediante traceparent.
+- ACR run ca9 exitoso, tag `advancedorders/inventory:0.1.0-p07`, digest `sha256:bce6c3d8de426cd9846808540557fc4fc23002a030b415c3cabf47380649ec6a`. Maven compiló y empaquetó; tests omitidos por Dockerfile. Pendiente ejecución del incidente.
