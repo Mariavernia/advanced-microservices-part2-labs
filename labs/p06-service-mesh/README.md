@@ -9,7 +9,7 @@
 
 En P05 protegimos el API Gateway con OAuth/OIDC y JWT. Eso **no protege necesariamente** las llamadas directas entre Orders e Inventory. Queremos demostrar la diferencia entre **identidad/autorización del usuario** (JWT en el Gateway), **identidad de carga de trabajo** (certificados de Istio) y **política de transporte** (mTLS STRICT).
 
-Istio ya está instalado por el instructor como **AKS-managed Istio addon**, revisión `asm-1-31`. La inyección requiere la etiqueta de **namespace** `istio.io/rev=asm-1-31`; `istio-injection=enabled` no sirve en este addon. No se cambia el namespace de otros alumnos ni `security` ni `course-ingress`.
+Istio ya está instalado por el instructor como **AKS-managed Istio addon**, revisión `asm-1-31`. La revisión instalada es `asm-1-31`. El instructor prepara la inyección selectiva y persistente de Orders e Inventory; no uses `istio-injection=enabled` en este addon. No se cambia el namespace de otros alumnos ni `security` ni `course-ingress`.
 
 ## Gate del instructor (antes de comenzar)
 
@@ -17,7 +17,7 @@ Esta práctica **no debe iniciarse** hasta que el instructor haya:
 
 1. Validado en `student02` el consumo de recursos, el estado de P05 y el impacto en sus Pods.
 2. Comprobado que los alumnos tienen permiso **limitado a su namespace** para leer/crear `PeerAuthentication`, y que no pueden aplicar políticas mesh-wide.
-3. Etiquetado **solo** el namespace piloto con la revisión Istio, después de verificar el clúster y las cuotas.
+3. Preparado la inyección selectiva de Orders e Inventory, con los otros servicios (en particular `api-gateway`) sin Envoy y con recursos verificados.
 4. Reiniciado primero Orders e Inventory bajo supervisión y comprobado que el contenedor `istio-proxy` está Ready en ambos; documentado un procedimiento de recuperación.
 5. Verificado que una llamada funcional Orders → Inventory continúa operativa.
 
@@ -64,11 +64,20 @@ Anota HTTP status y evidencia `servedBy`/inventario. **No** presentes el port-fo
 
 ## CORE 3 — ¿Qué significa PERMISSIVE frente a STRICT?
 
-Prepara, con ayuda del instructor, un Pod temporal **sin sidecar** en el mismo namespace. Antes de aplicar STRICT, observa si puede invocar `http://inventory:8080`. El comportamiento concreto depende de la admisión, política de seguridad y versión del addon: documenta resultados, no asumas éxito.
+Utiliza el Gateway existente **sin sidecar** como cliente legacy. La llamada directa desde su contenedor no pasa por el filtro JWT del API Gateway: estamos probando el transporte a Inventory, no una autorización de usuario.
 
-Inspecciona el manifiesto `manifests/01-inventory-strict-mtls.yaml`: ¿qué workloads selecciona? ¿Por qué no tiene `namespace` fijo?
+Antes de aplicar la política, comprueba ambos flujos:
 
-Cuando el instructor confirme que el cliente legacy funciona y el recurso está autorizado en tu namespace:
+```bash
+kubectl exec deploy/api-gateway -c api-gateway -- \
+  curl -sS --max-time 8 -o /dev/null -w 'Gateway sin Envoy: HTTP %{http_code}\n' \
+  http://inventory:8080/actuator/health
+kubectl exec deploy/orders -c orders -- \
+  curl -sS --max-time 8 -o /dev/null -w 'Orders con Envoy: HTTP %{http_code}\n' \
+  http://inventory:8080/actuator/health
+```
+
+Esperado: HTTP 200 en ambos. Inspecciona `manifests/01-inventory-strict-mtls.yaml`: ¿qué workloads selecciona? Predice las dos respuestas tras aplicar STRICT.
 
 ```bash
 kubectl apply -f labs/p06-service-mesh/manifests/01-inventory-strict-mtls.yaml
@@ -76,10 +85,13 @@ kubectl get peerauthentication
 kubectl describe peerauthentication inventory-strict-mtls
 ```
 
-Predice si (a) Orders con sidecar y (b) un cliente sin sidecar podrán seguir llegando a Inventory. Repite las pruebas. El resultado buscado es:
+Repite los dos comandos curl anteriores. Espera a que la política se propague y comprueba:
 
-- Orders → Inventory (ambos con sidecar): responde.
-- Cliente legacy sin certificado → Inventory con STRICT: comunicación rechazada.
+- Orders con Envoy → Inventory: HTTP 200.
+- Gateway sin Envoy → Inventory: rechazo de conexión (normalmente HTTP 000).
+- El preview Orders (CORE 2) sigue funcionando.
+
+Durante este ensayo, la ruta directa del Gateway hacia Inventory puede quedar temporalmente bloqueada. No ejecutes P05 en paralelo.
 
 **No equiparar automáticamente HTTP 403 con un fallo mTLS:** el rechazo puede darse en la negociación de transporte y provocar reset/timeout, no una respuesta HTTP de aplicación.
 
@@ -93,13 +105,26 @@ kubectl get pods -l app.kubernetes.io/name=orders -o wide
 
 Explica qué se ha asegurado realmente y qué **no**: mTLS protege y autentica el canal entre proxies; no reemplaza la autorización por usuario de P05 ni corrige por sí solo vulnerabilidades en los servicios.
 
-El instructor decidirá cuándo retirar la política. Comando de limpieza **solo de la política de esta práctica**:
+Al terminar, retira tú mismo **solo la política de esta práctica** (también si alguna comprobación falla):
 
 ```bash
 kubectl delete -f labs/p06-service-mesh/manifests/01-inventory-strict-mtls.yaml --ignore-not-found
 ```
 
+Repite la llamada directa del Gateway: debe volver a HTTP 200.
+
 **No retires tú la etiqueta del namespace**, porque es un recurso compartido administrado por el instructor; no borres otros recursos Istio.
+
+Para obtener evidencia de mTLS, consulta las métricas del proxy receptor sin mostrar credenciales:
+
+```bash
+kubectl exec deploy/inventory -c inventory -- \\
+  curl -fsS --max-time 8 http://127.0.0.1:15090/stats/prometheus | \\
+  grep '^istio_requests_total' | grep 'connection_security_policy="mutual_tls"' | \\
+  grep 'source_workload="orders"'
+```
+
+La identidad SPIFFE puede corresponder a la cuenta de servicio `default` compartida; no demuestra una identidad única por microservicio.
 
 ## SUPPORT — Diagnóstico
 
