@@ -86,6 +86,7 @@ echo "[INFO] Startup probe permits up to 300s before liveness takes effect; read
 rollback() {
   local rc=$?
   trap - EXIT
+  set +e # Diagnostics must not prevent best-effort rollback.
   if (( rc != 0 )); then
     echo "[WARN] Instrumentation failed; collecting current rollout evidence before rollback."
     for failed_app in "${CHANGED[@]}"; do
