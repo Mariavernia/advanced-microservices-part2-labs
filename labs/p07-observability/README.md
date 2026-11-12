@@ -13,7 +13,7 @@ Una petición a `Orders` tarda demasiado o falla porque `Inventory` introduce la
 3. ¿Qué señal aportan métricas, logs y **trazas distribuidas reales**?
 4. ¿Cómo verificas recuperación y diferencia entre síntoma y causa?
 
-El diseño inicial contemplaba observabilidad compartida. Para el primer piloto se utiliza **Jaeger temporal y privado en student02**, con almacenamiento en memoria y acceso por port-forward. Así evitamos que alumnos distintos puedan consultar trazas ajenas. La arquitectura definitiva de clase (compartida con aislamiento o instancias efímeras por namespace) se decidirá tras medir consumo y concurrencia.
+Se utiliza **Jaeger temporal y privado en el namespace de cada alumno**, con almacenamiento en memoria y acceso por port-forward privado. Así evitamos compartir trazas entre participantes. Este diseño está validado en student02; queda el ensayo de capacidad concurrente.
 
 ## Recorrido CORE
 
@@ -64,7 +64,7 @@ El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContai
 - La instrumentación CORE abarca tres servicios: Gateway, Orders e Inventory; no presupone instrumentación de los otros tres.
 - El incidente reversible mediante TRAINING_INVENTORY_DELAY_MS está validado en student02; mantenerlo aislado por namespace.
 - Verificar RBAC de lectura y acceso a dashboards; no exponer dashboards públicos sin autenticación.
-- Preparar la configuración reproducible para los 23 namespaces y realizar un ensayo de concurrencia.
+- Preparar la configuración reproducible para los 16 namespaces y realizar un ensayo de concurrencia.
 
 ## STRETCH (opcional)
 
@@ -84,7 +84,7 @@ Comparar cardinalidad de métricas, retención, sampling y costes; analizar una 
 
 Inventory añade una propiedad de entrenamiento `training.inventory.delay-ms` (variable `TRAINING_INVENTORY_DELAY_MS`), con valor por defecto 0 y máximo efectivo de 3000 ms. La latencia se introduce en el controlador para que aparezca dentro del span receptor y se registra con un warning; no afecta a las sondas Actuator. No aplicar a imágenes P01–P06 ni publicar un tag existente.
 
-El instructor ha construido el nuevo tag `advancedorders/inventory:0.1.0-p07` en ACR desde esta rama. Luego se cambiará solamente la imagen del Deployment Inventory en el namespace piloto, preservando sus sidecars y su agente. Se habilitará el endpoint interno Actuator metrics para observar `http.server.requests` y se añadirá trace_id/span_id al patrón de logs. Primero validar delay=0; después comparar con delay=1500 y restaurar 0. Los detalles operativos se cerrarán tras probar la imagen.
+El instructor ha construido el nuevo tag `advancedorders/inventory:0.1.0-p07` en ACR desde esta rama. Luego se cambiará solamente la imagen del Deployment Inventory en el namespace piloto, preservando sus sidecars y su agente. Se habilitará el endpoint interno Actuator metrics para observar `http.server.requests` y se añadirá trace_id/span_id al patrón de logs. Primero validar delay=0; después comparar con delay=1500 y restaurar 0. Los comandos operativos y las evidencias reales se incluyen a continuación.
 
 ### Evidencia 12/11/2026 — traza completa y build
 
@@ -93,7 +93,7 @@ El instructor ha construido el nuevo tag `advancedorders/inventory:0.1.0-p07` en
 
 ## Ejecución del incidente — alumno
 
-Prerequisitos: P01–P06; Jaeger y las dos fases de instrumentación anteriores funcionando; namespace propio y ninguna PeerAuthentication STRICT activa. Todos los comandos siguientes se ejecutan en Codespaces, nunca con la identidad administrativa. En el piloto el instructor preparó la inyección selectiva P06; para otros alumnos confirmar esta preparación antes de empezar.
+Prerequisitos: P01–P06; Jaeger y las dos fases de instrumentación anteriores funcionando; namespace propio y ninguna PeerAuthentication STRICT activa. Todos los comandos siguientes se ejecutan en Codespaces, nunca con la identidad administrativa. Completa la activación selectiva de P06 antes de empezar. No ejecutes su limpieza de mTLS más allá de retirar STRICT; conserva los sidecars.
 
 ### CORE 1 — Línea base
 
@@ -179,4 +179,4 @@ Entrega un RCA breve: síntoma, alcance, causa, evidencias (métrica, traza, log
 - Traza de incidente d033cd9732cf138c64167196f9656ff8: logs WARN a 06:51:21.313Z y INFO a 06:51:22.813Z comparten trace_id y span_id c6f70027b487028c, confirmando el retraso de 1500 ms en el controlador. Captura Jaeger confirmada: duración total aproximada 1.5 s, 2 servicios, 3 spans, profundidad 3, HTTP 200 en los tres spans. El span servidor Inventory ocupa casi toda la duración de la traza, coherente con la latencia configurada y los logs. No se ha leído la duración exacta del span en sus atributos.
 - Jaeger conserva trazas en memoria hasta que se recrea su Pod. No es necesario repetir el incidente para recuperar la evidencia si el backend sigue activo.
 
-**Aceptación P07 CORE:** PASS real. La captura de la traza de incidente confirma la identificación de la dependencia lenta; la correlación por trace_id y la recuperación ya se verificaron. El aviso Incomplete es compatible con el padre externo artificial del traceparent; no impide interpretar los tres spans observados. No confundir esta aceptación de un alumno con la preparación simultánea para 23 participantes. Mantener el delay en 0. La capacidad de cohorte, publicación definitiva y materiales docentes son hitos separados.
+**Aceptación P07 CORE:** PASS real. La captura de la traza de incidente confirma la identificación de la dependencia lenta; la correlación por trace_id y la recuperación ya se verificaron. El aviso Incomplete es compatible con el padre externo artificial del traceparent; no impide interpretar los tres spans observados. No confundir esta aceptación de un alumno con la preparación simultánea para 16 participantes. Mantener el delay en 0. La capacidad de cohorte, publicación definitiva y materiales docentes son hitos separados.
