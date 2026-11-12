@@ -1,6 +1,6 @@
 # P06 — De HTTP interno a mTLS entre microservicios con Istio
 
-> **Estado:** borrador técnico para ensayo de instructor; **no liberado a alumnos**.  
+> **Estado:** CORE funcional validado desde Codespaces con student02 (12/11/2026); pendiente de preparación de cohorte y publicación definitiva.  
 > **Duración CORE objetivo:** 100–120 minutos, tras P05.  
 > **Entorno:** fork personal + GitHub Codespaces; AKS del curso; sin instalación local.  
 > **Regla:** no habilitar Istio en el clúster ni etiquetar namespaces desde la cuenta del alumno.
