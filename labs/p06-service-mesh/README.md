@@ -1,7 +1,6 @@
 # P06 — De HTTP interno a mTLS entre microservicios con Istio
 
 > **Estado:** CORE funcional validado desde Codespaces con student02 (12/11/2026); RBAC preparado para los 16 alumnos. La activación selectiva se realiza al comenzar P06.  
-> **Duración CORE objetivo:** 100–120 minutos, tras P05.  
 > **Entorno:** fork personal + GitHub Codespaces; AKS del curso; sin instalación local.  
 > **Regla:** no habilitar Istio en el clúster ni etiquetar namespaces desde la cuenta del alumno.
 
