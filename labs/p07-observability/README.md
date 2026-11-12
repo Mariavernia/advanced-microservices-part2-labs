@@ -47,12 +47,16 @@ La cuota se consulta desde Cloud Shell administrativa: el rol de alumno no autor
 ## Piloto 1 — instrumentación Java (preparado, pendiente de prueba)
 
 ```bash
-bash labs/p07-observability/scripts/instrument.sh
+bash labs/p07-observability/scripts/instrument.sh backend
 # Solo si pasa el preflight:
-CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh
+CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh backend
+
+# Validar primero una traza real Orders → Inventory; después, en otra fase:
+bash labs/p07-observability/scripts/instrument.sh gateway
+CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh gateway
 ```
 
-El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContainer y emptyDir, configura JAVA_TOOL_OPTIONS, nombres de servicio y OTLP HTTP/protobuf hacia Jaeger dentro del mismo namespace. Conserva imágenes y variables existentes de P05 y etiquetas P06. Ajusta memoria de las aplicaciones instrumentadas a 256Mi request y 768Mi limit para el piloto. Si falla un rollout o una comprobación de salud, intenta recuperar las revisiones originales. No se ha comprobado todavía la propagación real de trazas; la lista de servicios y una misma traza con Gateway, Orders e Inventory son la siguiente evidencia. Las métricas y logs OTLP están deshabilitados en esta fase, porque Jaeger es backend de trazas. 
+El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContainer y emptyDir, configura JAVA_TOOL_OPTIONS, nombres de servicio y OTLP HTTP/protobuf hacia Jaeger dentro del mismo namespace. Conserva imágenes y variables existentes de P05 y etiquetas P06. Ajusta memoria de las aplicaciones instrumentadas a 256Mi request y 768Mi limit para el piloto. Añade startupProbe (hasta 300 s antes de habilitar liveness) y readinessProbe HTTP; se conservan las sondas liveness existentes. Si falla un rollout, recoge estados y logs de la revisión fallida antes de intentar recuperar las revisiones originales de esa fase. El fallo de Gateway no revierte Orders e Inventory ya instrumentados en la fase backend. No se ha comprobado todavía la propagación real de trazas; la lista de servicios y una misma traza con Gateway, Orders e Inventory son la siguiente evidencia. Las métricas y logs OTLP están deshabilitados en esta fase, porque Jaeger es backend de trazas. 
 
 ## Gate para implementación (instructor)
 
