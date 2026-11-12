@@ -1,6 +1,6 @@
 # P06 — De HTTP interno a mTLS entre microservicios con Istio
 
-> **Estado:** CORE funcional validado desde Codespaces con student02 (12/11/2026); pendiente de preparación de cohorte y publicación definitiva.  
+> **Estado:** CORE funcional validado desde Codespaces con student02 (12/11/2026); RBAC preparado para los 16 alumnos. La activación selectiva se realiza al comenzar P06.  
 > **Duración CORE objetivo:** 100–120 minutos, tras P05.  
 > **Entorno:** fork personal + GitHub Codespaces; AKS del curso; sin instalación local.  
 > **Regla:** no habilitar Istio en el clúster ni etiquetar namespaces desde la cuenta del alumno.
@@ -22,6 +22,10 @@ Esta práctica **no debe iniciarse** hasta que el instructor haya:
 5. Verificado que una llamada funcional Orders → Inventory continúa operativa.
 
 > Se utiliza `PeerAuthentication` con selector **solo Inventory**; no se modifica el modo mTLS de todo el clúster. Requiere validación real con alumno antes del uso general. Nunca ejecutar `kubectl label namespace` desde Codespaces de alumnos.
+
+## CORE 0 — Activación selectiva (coordinada por el instructor)
+
+Antes de comenzar P06, conserva el Gateway sin Envoy y las aplicaciones de P01–P05. El instructor coordina la activación de la malla en tu namespace mediante su helper administrativo `p06-selective-mesh.sh studentNN`; no se comparte ese repositorio ni se necesitan credenciales administrativas. Se parchean las plantillas de Inventory y Orders con la revisión `asm-1-31` y los recursos del proxy ya ensayados. Los demás workloads permanecen fuera de la malla. Espera la confirmación del instructor y comprueba los Pods en el siguiente paso. El procedimiento conserva la inyección al recrear Pods.
 
 ## CORE 1 — Predicción y observación de la malla
 
