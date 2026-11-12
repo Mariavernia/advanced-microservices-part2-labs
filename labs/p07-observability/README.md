@@ -1,6 +1,6 @@
 # P07 — Investigar un incidente distribuido con métricas, trazas y logs
 
-> **Estado: CORE funcional ensayado en Codespaces student02 (12/11/2026): Jaeger, trazas distribuidas, latencia, métricas, logs correlacionados y recuperación. Pendientes: inspección de la traza degradada y dimensionamiento/entrega de cohorte.**  
+> **Estado: P07 CORE PASS desde Codespaces student02 (12/11/2026): Jaeger, traza distribuida autenticada, incidente, métricas, logs correlacionados, traza degradada y recuperación. Pendientes: dimensionamiento y entrega de cohorte.**  
 > **Modalidad:** Codespaces en fork + AKS; sin instalaciones locales.  
 > **Predecesores:** P01–P06.
 
@@ -176,5 +176,7 @@ Entrega un RCA breve: síntoma, alcance, causa, evidencias (métrica, traza, log
 - Incidente: HTTP 200 en 3/3; tiempos cliente 1538.945/1512.111/1511.735 ms. Inventory COUNT=3, TOTAL_TIME=4.515659089 s, MAX=1.511112482 s.
 - Recuperación: HTTP 200 en 3/3; tiempos cliente 28.149/11.127/10.825 ms, canBeFulfilled=true en todas las fases. Delay final=0.
 - Traza normal f63858bc8f0dafdf4f3a8d0f62505c4e: captura de Jaeger 58.2 ms, Orders cliente 6.8 ms, Inventory 3.0 ms, 2 servicios / 3 spans.
-- Traza de incidente d033cd9732cf138c64167196f9656ff8: logs WARN a 06:51:21.313Z y INFO a 06:51:22.813Z comparten trace_id y span_id c6f70027b487028c, confirmando el retraso de 1500 ms en el controlador. La captura de la traza degradada queda pendiente de consulta en Jaeger; no se ha observado todavía su duración exacta.
+- Traza de incidente d033cd9732cf138c64167196f9656ff8: logs WARN a 06:51:21.313Z y INFO a 06:51:22.813Z comparten trace_id y span_id c6f70027b487028c, confirmando el retraso de 1500 ms en el controlador. Captura Jaeger confirmada: duración total aproximada 1.5 s, 2 servicios, 3 spans, profundidad 3, HTTP 200 en los tres spans. El span servidor Inventory ocupa casi toda la duración de la traza, coherente con la latencia configurada y los logs. No se ha leído la duración exacta del span en sus atributos.
 - Jaeger conserva trazas en memoria hasta que se recrea su Pod. No es necesario repetir el incidente para recuperar la evidencia si el backend sigue activo.
+
+**Aceptación P07 CORE:** PASS real. La captura de la traza de incidente confirma la identificación de la dependencia lenta; la correlación por trace_id y la recuperación ya se verificaron. El aviso Incomplete es compatible con el padre externo artificial del traceparent; no impide interpretar los tres spans observados. No confundir esta aceptación de un alumno con la preparación simultánea para 23 participantes. Mantener el delay en 0. La capacidad de cohorte, publicación definitiva y materiales docentes son hitos separados.
