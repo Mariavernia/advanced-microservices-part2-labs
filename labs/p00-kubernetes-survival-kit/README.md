@@ -2,6 +2,7 @@
 
 **Mode:** individual  
 **Platform:** Advanced Orders Platform — Orders + Inventory
+**Method:** [Student lab methodology](../../docs/METODOLOGIA-PRACTICAS.md). Apply resources and investigate them yourself; run `verify.sh` only at the end.
 
 ## Scenario
 
@@ -388,7 +389,7 @@ Run:
 
 A successful run should end with zero failed checks.
 
-The objective is not merely to get `PASS`. Be ready to explain **why** every check passes.
+The objective is not merely to get `PASS`. Be ready to explain **why** every check passes. Record four short notes — *predicted, changed, observed, concluded* — and one piece of evidence from Kubernetes or HTTP.
 
 ---
 

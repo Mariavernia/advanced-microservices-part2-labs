@@ -1,0 +1,85 @@
+name: Source and YAML checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Maven tests for all modules
+        run: mvn -B --no-transfer-progress test
+      - name: Bash syntax
+        run: |
+          find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r bash -n
+      - name: Check shell scripts have executable Git mode
+        run: |
+          git ls-files --stage | awk '
+            $4 ~ /[.]sh$/ && $1 != "100755" {
+              print "ERROR: shell script not executable in Git:", $4, "mode=" $1
+              bad=1
+            }
+            END { exit bad }
+          '
+      - name: Parse Kubernetes YAML
+        run: |
+          python3 -m pip install --user pyyaml
+          python3 - <<'PY'
+          import yaml
+          from pathlib import Path
+          files = list(Path("labs").rglob("*.yaml"))
+          for path in files:
+              docs = list(yaml.safe_load_all(path.read_text()))
+              assert docs and all(isinstance(doc, dict) for doc in docs), path
+              print(f"OK {path}: {len(docs)} document(s)")
+          PY
+      - name: Check P04 PodSecurity restricted baseline
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          for filename, kind, uid, gid in [
+              ("labs/p04-state-and-cache/manifests/01-orders-db.yaml", "StatefulSet", 70, 70),
+              ("labs/p04-state-and-cache/manifests/02-orders-cache.yaml", "Deployment", 999, 1000),
+          ]:
+              docs = list(yaml.safe_load_all(Path(filename).read_text()))
+              workload = next((item for item in docs if item.get("kind") == kind), None)
+              assert workload is not None, f"{filename}: missing {kind}"
+              spec = workload["spec"]["template"]["spec"]
+              pod_sec = spec["securityContext"]
+              assert pod_sec.get("runAsNonRoot") is True, filename
+              assert pod_sec.get("runAsUser") == uid and pod_sec.get("runAsGroup") == gid, filename
+              assert pod_sec.get("seccompProfile", {}).get("type") == "RuntimeDefault", filename
+              for container in spec["containers"]:
+                  csec = container["securityContext"]
+                  assert csec.get("allowPrivilegeEscalation") is False, filename
+                  assert "ALL" in csec.get("capabilities", {}).get("drop", []), filename
+              print(f"OK: {filename} ({kind} non-root, restricted baseline)")
+          PY
+      - name: Validate HA topology JSON
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("labs/p02-resilience/manifests/03-orders-topology-spread.json")
+          doc = json.loads(path.read_text(encoding="utf-8"))
+          constraints = doc["spec"]["template"]["spec"]["topologySpreadConstraints"]
+          assert any(
+              item.get("minDomains") == 2
+              and item.get("maxSkew") == 1
+              and item.get("topologyKey") == "kubernetes.io/hostname"
+              and item.get("whenUnsatisfiable") == "DoNotSchedule"
+              for item in constraints
+          ), "P02-H must require two hostname domains"
+          print("P02-H topology JSON is valid")
+          PY
+      - name: Ensure student labs have no estimated durations
+        run: python3 scripts/check-no-lab-durations.py

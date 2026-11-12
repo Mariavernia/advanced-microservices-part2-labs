@@ -4,13 +4,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * Regression for the missing RestClient.Builder auto-configuration:
- * unit tests mocking InventoryClient alone did not start Spring.
+ * Exercises complete Spring application startup, including RestClient.Builder
+ * auto-configuration. Mock-based unit tests did not catch the missing starter.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class OrdersApplicationContextTest {
+
     @Test
     void applicationContextStarts() {
-        // The test fails if the Spring context or HTTP server cannot start.
+        // The Spring TestContext framework fails the test if bean injection
+        // or server startup fails before this method runs.
     }
 }
