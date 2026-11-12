@@ -35,11 +35,24 @@ El manifiesto `manifests/01-jaeger-pilot.yaml` crea Jaeger 2.23.0 en el namespac
 kubectl apply --dry-run=server -f labs/p07-observability/manifests/01-jaeger-pilot.yaml
 kubectl apply -f labs/p07-observability/manifests/01-jaeger-pilot.yaml
 kubectl rollout status deployment/p07-jaeger --timeout=180s
-kubectl get pods,svc -l app.kubernetes.io/name=p07-jaeger
+kubectl get deployment,service p07-jaeger
+kubectl get pods -l app.kubernetes.io/name=p07-jaeger
 kubectl port-forward service/p07-jaeger 16686:16686
 ```
 
-Abrir la UI mediante el puerto privado de Codespaces. El endpoint `/api/services` debe responder; no se espera que aparezcan Orders/Inventory hasta instrumentarlos. Cleanup: `kubectl delete -f labs/p07-observability/manifests/01-jaeger-pilot.yaml`. Jaeger utiliza almacenamiento efímero: se pierden las trazas cuando se recrea el Pod.
+Abrir la UI mediante el puerto privado de Codespaces. El endpoint `/api/v3/services` debe responder; no se espera que aparezcan Orders/Inventory hasta instrumentarlos. Cleanup: `kubectl delete -f labs/p07-observability/manifests/01-jaeger-pilot.yaml`. Jaeger utiliza almacenamiento efímero: se pierden las trazas cuando se recrea el Pod.
+
+La cuota se consulta desde Cloud Shell administrativa: el rol de alumno no autoriza leer ResourceQuota. No es necesario modificar RBAC.
+
+## Piloto 1 — instrumentación Java (preparado, pendiente de prueba)
+
+```bash
+bash labs/p07-observability/scripts/instrument.sh
+# Solo si pasa el preflight:
+CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh
+```
+
+El helper añade el agente oficial OpenTelemetry Java 2.30.0 mediante initContainer y emptyDir, configura JAVA_TOOL_OPTIONS, nombres de servicio y OTLP HTTP/protobuf hacia Jaeger dentro del mismo namespace. Conserva imágenes y variables existentes de P05 y etiquetas P06. Ajusta memoria de las aplicaciones instrumentadas a 256Mi request y 768Mi limit para el piloto. Si falla un rollout o una comprobación de salud, intenta recuperar las revisiones originales. No se ha comprobado todavía la propagación real de trazas; la lista de servicios y una misma traza con Gateway, Orders e Inventory son la siguiente evidencia. Las métricas y logs OTLP están deshabilitados en esta fase, porque Jaeger es backend de trazas. 
 
 ## Gate para implementación (instructor)
 
