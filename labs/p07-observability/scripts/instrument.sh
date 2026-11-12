@@ -12,8 +12,8 @@ NS="$(kubectl config view --minify -o jsonpath='{..namespace}')"
 kubectl get deploy p07-jaeger -o json | jq -e '.status.readyReplicas==1' >/dev/null
 [[ "$(kubectl get peerauthentication -o json | jq '.items|length')" == 0 ]] || { echo "[FAIL] Remove the P06 temporary STRICT policy first"; exit 2; }
 
-# Official multi-arch image, pinned version + index digest.
-AGENT="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0@sha256:ffea559f6684239a0ae41764d6f00348340aa08bbf8fbef7bac1700410015b90"
+# Official linux/amd64 image, pinned manifest digest (AKS x86 nodes).
+AGENT="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0@sha256:f5133aceb480d0779b8ce288a52ddbc80414ba9774818de111f2351f02f3eb94"
 APPS=(inventory orders api-gateway)
 declare -A OLD_REV
 declare -a CHANGED=()
