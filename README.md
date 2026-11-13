@@ -13,7 +13,7 @@ Trabaja desde tu **fork personal** con **GitHub Codespaces**. No necesitas insta
 3. Comprueba que el namespace seleccionado es el tuyo.
 4. Comienza por [P00](labs/p00-kubernetes-survival-kit/README.md).
 
-Guía completa: [Primeros pasos](docs/getting-started.md). Metodología: [predicción, cambio, observación y conclusión](docs/METODOLOGIA-PRACTICAS.md).
+Guía completa en español: [Guía del alumno — Primeros pasos](docs/getting-started.md). Metodología: [predicción, cambio, observación y conclusión](docs/METODOLOGIA-PRACTICAS.md).
 
 ## Recorrido de laboratorios
 
@@ -28,7 +28,7 @@ Guía completa: [Primeros pasos](docs/getting-started.md). Metodología: [predic
 | [P06](labs/p06-service-mesh/README.md) | Istio, Envoy y mTLS |
 | [P07](labs/p07-observability/README.md) | OpenTelemetry, Jaeger, métricas, logs e incidente |
 
-El recorrido CORE P00–P07 ha sido ensayado con identidades reales de alumno en Codespaces y AKS. La preparación de la cohorte de 16 y su ensayo concurrente son comprobaciones independientes del instructor.
+El recorrido CORE P00–P07 ha sido ensayado con identidades reales de alumno en Codespaces y AKS. La infraestructura está preparada para 16 alumnos confirmados, un alumno de reserva y el instructor. El ensayo de capacidad concurrente es una comprobación independiente del instructor.
 
 **No ejecutes todos los laboratorios de golpe.** Mantén los servicios que pide la práctica siguiente. Los verificadores se ejecutan al final y no sustituyen las evidencias. No compartas contraseñas, JWT, kubeconfig ni archivos privados de credenciales.
 
