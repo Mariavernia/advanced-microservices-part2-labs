@@ -52,7 +52,19 @@ for i in $(seq 1 15); do
 done
 ~~~
 
-No se garantiza reparto uniforme: el balanceo actua sobre conexiones y puede haber reutilizacion.
+Agrupa las respuestas por servedBy y compara con conexiones nuevas directamente al Service desde el contenedor Gateway:
+
+~~~bash
+kubectl exec deploy/api-gateway -c api-gateway -- \
+  sh -c '
+    for i in $(seq 1 20); do
+      curl -fsS "http://orders:8080/api/orders/preview?sku=SKU-001&quantity=2"
+      echo
+    done
+  ' | jq -r '.servedBy' | sort | uniq -c
+~~~
+
+No se garantiza reparto uniforme: el balanceo actúa sobre conexiones y puede haber reutilización. Si todas las llamadas vía Gateway llegan a un mismo Pod, pero las conexiones directas alcanzan ambos, no implica un fallo del Service. Contrasta EndpointSlices y explica cómo un pool HTTP del Gateway puede mantener conexiones persistentes hacia un backend. No deduzcas pesos de tráfico exactos de una muestra pequeña.
 
 ## Caida de nodo (solo demostracion de instructor)
 

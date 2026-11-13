@@ -209,7 +209,13 @@ kubectl get endpointslice -l kubernetes.io/service-name=orders -o wide
 curl -fsS 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq '{serviceVersion,servedBy,canBeFulfilled}'
 ~~~
 
-Espera que el EndpointSlice refleje los endpoints candidatos. Las conexiones existentes pueden seguir reutilizándose; verifica nuevas conexiones y el resultado de negocio. No elimines el Deployment estable: es tu camino de retorno.
+Espera que el EndpointSlice refleje exclusivamente los endpoints candidatos. Las conexiones existentes del Gateway pueden seguir reutilizándose, incluso aunque cada curl a localhost sea nuevo. Repite la comprobación directamente contra el Service estable desde el contenedor Gateway:
+
+~~~bash
+kubectl exec deploy/api-gateway -c api-gateway -- curl -fsS 'http://orders:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq '{serviceVersion,servedBy,canBeFulfilled}'
+~~~
+
+Este comando abre una nueva conexión hacia Service/orders y evita el pool HTTP de la aplicación Gateway. Contrasta selector, EndpointSlice, versión directa y versión vía Gateway. Si la ruta Gateway conserva la versión anterior, registra el efecto de conexiones persistentes; no declares fallido el cambio de selector por esa sola observación. Si necesitas demostrar la convergencia de la ruta Gateway, bajo supervisión realiza un rollout restart únicamente de api-gateway, espera su rollout y vuelve a comprobar HTTP con reintentos. No elimines el Deployment estable: es tu camino de retorno.
 
 **Reversión:** restaura el selector original (app.kubernetes.io/name: orders), comprueba los endpoints y demuestra la versión estable. Esta reversión de tráfico es distinta de rollout undo.
 
@@ -219,7 +225,7 @@ kubectl get endpointslice -l kubernetes.io/service-name=orders
 curl -fsS 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq '{serviceVersion,servedBy,canBeFulfilled}'
 ~~~
 
-No borres Green hasta verificar el retorno estable. Si falla el routing, restaura el selector original antes de investigar más.
+Verifica también el retorno con una conexión directa a Service/orders, usando el mismo comando anterior. Si el Gateway sigue usando conexiones a Green, aplica el mismo diagnóstico de pooling y, si es necesario, reinicia solo Gateway bajo supervisión. No borres Green hasta verificar el retorno estable. Si falla el routing, restaura el selector original antes de investigar más.
 
 ## STRETCH — Canary por conjunto de endpoints
 
