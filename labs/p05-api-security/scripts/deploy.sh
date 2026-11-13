@@ -4,7 +4,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck disable=SC1090
 source "$root/config/course.env"
 ns="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || true)"
-[[ "$ns" =~ ^student[0-9]{2}$ || "$ns" == "demo" ]] || { echo "Unexpected namespace: $ns" >&2; exit 2; }
+[[ "$ns" =~ ^(student[0-9]{2}|instructor)$ || "$ns" == "demo" ]] || { echo "Unexpected namespace: $ns" >&2; exit 2; }
 issuer="${OIDC_ISSUER_URI:-}"
 audience="${OIDC_AUDIENCE:-advanced-orders-api}"
 [[ "$issuer" == https://* ]] || { echo "OIDC_ISSUER_URI must be the instructor-provided HTTPS issuer URL (not configured)." >&2; exit 2; }

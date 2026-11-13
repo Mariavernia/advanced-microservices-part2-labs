@@ -59,7 +59,7 @@ UPN="$(az account show --query user.name -o tsv)"
 DERIVED_NAMESPACE="${UPN%%@*}"
 STUDENT_NAMESPACE="${STUDENT_NAMESPACE:-${DERIVED_NAMESPACE}}"
 
-if [[ ! "${STUDENT_NAMESPACE}" =~ ^student[0-9]{2}$ && "${STUDENT_NAMESPACE}" != "demo" ]]; then
+if [[ ! "${STUDENT_NAMESPACE}" =~ ^(student[0-9]{2}|instructor)$ && "${STUDENT_NAMESPACE}" != "demo" ]]; then
   cat >&2 <<EOF_ERROR
 [ERROR] Could not derive a valid course namespace from the authenticated identity.
         Azure identity: ${UPN}

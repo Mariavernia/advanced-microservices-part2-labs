@@ -106,7 +106,7 @@ else
 fi
 
 CURRENT_NAMESPACE="$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null || true)"
-if [[ "${CURRENT_NAMESPACE}" =~ ^student[0-9]{2}$ || "${CURRENT_NAMESPACE}" == "demo" ]]; then
+if [[ "${CURRENT_NAMESPACE}" =~ ^(student[0-9]{2}|instructor)$ || "${CURRENT_NAMESPACE}" == "demo" ]]; then
   pass "Course namespace selected (${CURRENT_NAMESPACE})"
 else
   fail "Unexpected or missing namespace (${CURRENT_NAMESPACE:-none})"

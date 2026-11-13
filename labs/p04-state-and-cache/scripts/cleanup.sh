@@ -2,7 +2,7 @@
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ns="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || true)"
-[[ "$ns" =~ ^student[0-9]{2}$ ]] || { echo "Unexpected namespace $ns" >&2; exit 2; }
+[[ "$ns" =~ ^(student[0-9]{2}|instructor)$ ]] || { echo "Unexpected namespace $ns" >&2; exit 2; }
 if [[ "${1:-}" == "--help" ]]; then
   echo "Usage: bash labs/p04-state-and-cache/scripts/cleanup.sh [--destroy-data]"
   echo "Without --destroy-data, leaves the synthetic password Secret and PVC in place."
