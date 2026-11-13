@@ -243,5 +243,5 @@ bash labs/p04-state-and-cache/scripts/cleanup.sh
 
 La limpieza estándar elimina los workloads de P04 **pero conserva el PVC y el
 Secret**, para evitar pérdida accidental de datos y permitir recuperar el
-laboratorio. Al utilizar `managed-csi`, un PVC persistente puede conservar un disco con costes asociados; el instructor decidirá cuándo eliminarlo de forma segura al finalizar todos los ensayos. Consulta `scripts/cleanup.sh --help` antes de una limpieza definitiva.
+laboratorio. Al utilizar `managed-csi`, un PVC persistente puede conservar un disco con costes asociados; el instructor decidirá cuándo eliminarlo de forma segura al finalizar el laboratorio. Consulta `scripts/cleanup.sh --help` antes de una limpieza definitiva.
 No alteres los recursos de otros alumnos.

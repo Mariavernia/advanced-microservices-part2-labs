@@ -193,4 +193,3 @@ rm -f ~/.cache/advanced-orders/reader.jwt ~/.cache/advanced-orders/admin.jwt
 El cleanup restaura la imagen y configuración del Gateway de P01 en tu namespace.
 No modifica el Keycloak compartido ni los datos de otros alumnos.
 
-**Estado de aceptación:** CORE PASS desde Codespaces con Keycloak HTTPS y Device Grant; 32 cuentas de aplicación preparadas para la cohorte de 16. La comprobación individual se realiza durante la práctica.

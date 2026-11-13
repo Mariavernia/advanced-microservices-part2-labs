@@ -1,6 +1,6 @@
 # P02-H — Balanceo y alta disponibilidad a nivel de nodo
 
-Extensión de P02 preparada para clase; requiere **dos nodos user Ready y elegibles para scheduling**. Esta práctica NO valida disponibilidad multizona; el node pool actual es regional sin zonas explícitas. Es una ampliación opcional de P02: no forma parte del recorrido CORE ni debe ejecutarse si faltan recursos o permisos.
+Extensión de P02; requiere **dos nodos user Ready y elegibles para scheduling**. Esta práctica NO valida disponibilidad multizona; el node pool actual es regional sin zonas explícitas. Es una ampliación opcional de P02: no forma parte del recorrido CORE ni debe ejecutarse si faltan recursos o permisos.
 
 ## Prediccion
 
@@ -10,10 +10,9 @@ Extensión de P02 preparada para clase; requiere **dos nodos user Ready y elegib
 
 ## Ejecucion guiada con el instructor
 
-Comprobar antes que existen al menos dos nodos user disponibles y capacidad libre. Solo se modifica el Deployment Orders del namespace propio.
+El instructor comprueba antes que existen al menos dos nodos user disponibles y capacidad libre. No necesitas permisos para listar nodos. Solo se modifica el Deployment Orders del namespace propio.
 
 ~~~bash
-kubectl get nodes -L agentpool
 kubectl get pods -l app.kubernetes.io/name=orders -o wide
 kubectl patch hpa orders --type=merge -p '{"spec":{"minReplicas":2}}'
 kubectl patch deployment orders --type=merge --patch-file labs/p02-resilience/manifests/03-orders-topology-spread.json
@@ -72,4 +71,3 @@ kubectl apply -f labs/p02-resilience/manifests/01-orders-probes.yaml
 kubectl rollout status deployment/orders --timeout=180s
 ~~~
 
-**Pendiente:** prueba real con AKS encendido y dos nodos user.

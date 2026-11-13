@@ -28,7 +28,7 @@ Guía completa en español: [Guía del alumno — Primeros pasos](docs/getting-s
 | [P06](labs/p06-service-mesh/README.md) | Istio, Envoy y mTLS |
 | [P07](labs/p07-observability/README.md) | OpenTelemetry, Jaeger, métricas, logs e incidente |
 
-El recorrido CORE P00–P07 ha sido ensayado con identidades reales de alumno en Codespaces y AKS. La infraestructura está preparada para 16 alumnos confirmados, un alumno de reserva y el instructor. El ensayo de capacidad concurrente es una comprobación independiente del instructor.
+El recorrido CORE P00–P07 se ejecuta desde el fork personal y el namespace asignado. Consulta los requisitos de cada práctica y espera la indicación del instructor antes de comenzar.
 
 **No ejecutes todos los laboratorios de golpe.** Mantén los servicios que pide la práctica siguiente. Los verificadores se ejecutan al final y no sustituyen las evidencias. No compartas contraseñas, JWT, kubeconfig ni archivos privados de credenciales.
 

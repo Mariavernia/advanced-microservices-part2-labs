@@ -1,7 +1,6 @@
 # ADR-002 — Plataforma P01 con seis servicios independientes
 
 **Estado:** Accepted (training baseline)  
-**Fecha:** 2026-11-09
 
 ## Contexto
 
@@ -25,11 +24,11 @@ Declaramos requests/limits sin introducir todavía probes ni autoescalado.
 
 ## Consecuencias y límites
 
-- Seis JVM por alumno: hay que validar dimensionamiento real antes del curso.
+- Seis JVM por entorno: el dimensionamiento depende de los recursos disponibles y las cargas concurrentes.
 - La plataforma permite observar Service DNS y fallos propagados de configuración.
 - **No es modelo de producción:** servicios single-replica, credencial ficticia,
   Gateway sin autenticación, ningún proveedor de pagos o correo conectado.
 - Se evita incluir secretos reales o copias base64 en Git.
-- Query/Projection entrará en P04, con persistencia y caché.
-- Hay una dependencia externa pendiente: imágenes en ACR y pull desde AKS.
+- P04 demuestra persistencia y caché mediante PostgreSQL y Redis, sin integrar todavía estos componentes en la API Java.
+- La plataforma requiere imágenes publicadas en ACR y permisos de descarga para AKS.
 - Probes, degradación y autoescalado se reservan para P02.

@@ -81,5 +81,5 @@ jobs:
           ), "P02-H must require two hostname domains"
           print("P02-H topology JSON is valid")
           PY
-      - name: Ensure student labs have no estimated durations
+      - name: Ensure student materials are independent of the course delivery
         run: python3 scripts/check-no-lab-durations.py

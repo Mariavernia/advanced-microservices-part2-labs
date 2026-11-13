@@ -1,7 +1,6 @@
 # Guía del alumno — Primeros pasos
 
 **Arquitectura de Microservicios Avanzada · Parte 2: Orquestación, Seguridad y Observabilidad**  
-Global Knowledge / Indra · 16–20 de noviembre de 2026 · 09:00–15:00 (hora de España)
 
 Esta guía es el punto de entrada al curso. Léela antes de comenzar P00. Trabajaremos sobre **Advanced Orders Platform**, una aplicación de seis microservicios Java/Spring Boot que evolucionará a lo largo de ocho prácticas. El objetivo es aprender a desplegar, operar, proteger y diagnosticar microservicios; no aprender Java desde cero.
 
@@ -64,7 +63,7 @@ git log -1 --oneline
 ls labs
 ```
 
-Debes ver main y ocho directorios P00–P07. El instructor indicará la versión de entrega; no necesitas cambiar de rama para empezar.
+Debes ver main y ocho directorios P00–P07. Trabaja con la rama main actualizada; no necesitas cambiar de rama para empezar.
 
 El Dev Container prepara Git, GitHub CLI, Azure CLI, kubectl, kubelogin, Helm, curl, HTTPie, jq, yq, Java, Maven y Python. Si falla la instalación, avisa antes de instalar herramientas manualmente. Puedes usar el menú de comandos de VS Code Web para **Codespaces: Rebuild Container** si el instructor lo indica.
 
@@ -219,7 +218,7 @@ Los tokens se guardan fuera de Git, en ~/.cache/advanced-orders, con permisos pr
 | Forbidden en tu namespace | Identidad y namespace; informa del verbo/recurso denegado |
 | Forbidden en otro namespace | Es el comportamiento esperado |
 | API Kubernetes inaccesible | Confirma con instructor que AKS está Running; no intentes crear otro clúster |
-| Pending / FailedScheduling | Describe el Pod y revisa eventos y quota; no aumentes límites |
+| Pending / FailedScheduling | Describe el Pod y revisa eventos; el instructor comprobará la cuota. No aumentes límites |
 | ImagePullBackOff | Revisa nombre/tag en README y eventos; instructor comprueba ACR |
 | CrashLoopBackOff / no Ready | Logs, describe, probes y configuración; no borres todo |
 | Port-forward ocupado o desconectado | Ctrl+C en el anterior, vuelve a abrir el puerto privado; revisa Pod Ready |
@@ -234,7 +233,6 @@ kubectl get deployment,pod,service
 kubectl get events --sort-by=.lastTimestamp | tail -n 20
 kubectl describe pod <nombre-del-pod>
 kubectl logs deployment/orders --tail=80
-kubectl get resourcequota
 ```
 
 Sustituye el marcador del nombre de Pod por el real. No envíes salida de Secrets, kubeconfig, tokens ni contraseñas. Para pedir ayuda indica tu número, práctica y paso, comando que falla, error exacto y observación esperada. No incluyas device codes ni datos privados.

@@ -1,6 +1,5 @@
 # P06 — De HTTP interno a mTLS entre microservicios con Istio
 
-> **Estado:** CORE funcional validado desde Codespaces con student02 (12/11/2026); RBAC preparado para los 16 alumnos. La activación selectiva se realiza al comenzar P06.  
 > **Entorno:** fork personal + GitHub Codespaces; AKS del curso; sin instalación local.  
 > **Regla:** no habilitar Istio en el clúster ni etiquetar namespaces desde la cuenta del alumno.
 
@@ -14,17 +13,17 @@ Istio ya está instalado por el instructor como **AKS-managed Istio addon**, rev
 
 Esta práctica **no debe iniciarse** hasta que el instructor haya:
 
-1. Validado en `student02` el consumo de recursos, el estado de P05 y el impacto en sus Pods.
+1. Comprobado la capacidad disponible, el estado de P05 y el impacto de los sidecars en los Pods.
 2. Comprobado que los alumnos tienen permiso **limitado a su namespace** para leer/crear `PeerAuthentication`, y que no pueden aplicar políticas mesh-wide.
 3. Preparado la inyección selectiva de Orders e Inventory, con los otros servicios (en particular `api-gateway`) sin Envoy y con recursos verificados.
 4. Reiniciado primero Orders e Inventory bajo supervisión y comprobado que el contenedor `istio-proxy` está Ready en ambos; documentado un procedimiento de recuperación.
 5. Verificado que una llamada funcional Orders → Inventory continúa operativa.
 
-> Se utiliza `PeerAuthentication` con selector **solo Inventory**; no se modifica el modo mTLS de todo el clúster. Requiere validación real con alumno antes del uso general. Nunca ejecutar `kubectl label namespace` desde Codespaces de alumnos.
+> Se utiliza `PeerAuthentication` con selector **solo Inventory**; no se modifica el modo mTLS de todo el clúster. Nunca ejecutar `kubectl label namespace` desde Codespaces de alumnos.
 
 ## CORE 0 — Activación selectiva (coordinada por el instructor)
 
-Antes de comenzar P06, conserva el Gateway sin Envoy y las aplicaciones de P01–P05. El instructor coordina la activación de la malla en tu namespace mediante su helper administrativo `p06-selective-mesh.sh studentNN`; no se comparte ese repositorio ni se necesitan credenciales administrativas. Se parchean las plantillas de Inventory y Orders con la revisión `asm-1-31` y los recursos del proxy ya ensayados. Los demás workloads permanecen fuera de la malla. Espera la confirmación del instructor y comprueba los Pods en el siguiente paso. El procedimiento conserva la inyección al recrear Pods.
+Antes de comenzar P06, conserva el Gateway sin Envoy y las aplicaciones de P01–P05. El instructor coordina la activación de la malla en tu namespace mediante un procedimiento administrativo; no se necesitan credenciales administrativas en Codespaces. Se parchean las plantillas de Inventory y Orders con la revisión `asm-1-31` y los recursos del proxy configurados para el laboratorio. Los demás workloads permanecen fuera de la malla. Espera la confirmación del instructor y comprueba los Pods en el siguiente paso. El procedimiento conserva la inyección al recrear Pods.
 
 ## CORE 1 — Predicción y observación de la malla
 

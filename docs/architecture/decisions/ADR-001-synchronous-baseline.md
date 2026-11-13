@@ -1,7 +1,6 @@
 # ADR-001 — Start with synchronous HTTP between Orders and Inventory
 
 - **Status:** Accepted for baseline
-- **Date:** 2026-11-03
 
 ## Context
 

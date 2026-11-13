@@ -72,7 +72,7 @@ Un rollback deshace la última revisión; no lo ejecutes a ciegas si se han acum
 
 ### Observación importante: rollback operativo frente a estado declarativo
 
-Durante el ensayo real, la modificación de `INVENTORY_BASE_URL` produjo **HTTP 502**, código de aplicación `INVENTORY_UNAVAILABLE`, mientras `rollout status` devolvía éxito. El rollback restauró `APP_VERSION=0.2.0-lab` y eliminó el override erróneo; el Gateway volvió a responder 200. Un ensayo anterior, realizado con un ConfigMap alterado, devolvió un 500 genérico: **registra el estado HTTP real y no supongas que todos los fallos tienen el mismo código**.
+Una URL de Inventory inválida puede producir **HTTP 502** con código `INVENTORY_UNAVAILABLE` mientras `rollout status` devuelve éxito. Otros fallos de configuración pueden devolver 500. **Registra el estado HTTP real**, comprueba que el rollback elimina el override erróneo y verifica que el Gateway vuelve a responder 200.
 
 Es posible que `kubectl rollout undo` advierta que no actualiza la anotación `kubectl.kubernetes.io/last-applied-configuration`. La revisión operativa se restaura, **pero eso no sincroniza el manifiesto versionado en Git ni la anotación del último `kubectl apply`**. Si luego ejecutas `kubectl apply` sobre un manifiesto antiguo de Orders, puedes alterar las probes o la variable APP_VERSION. Durante este laboratorio no vuelvas a aplicar a ciegas el YAML antiguo de P01: inspecciona antes `kubectl get deployment orders -o yaml` y prepara una definición declarativa coherente con el estado deseado.
 
@@ -80,7 +80,7 @@ Es posible que `kubectl rollout undo` advierta que no actualiza la anotación `k
 
 Documenta qué comprobarías para promover la revisión: tests de servicio, validación de manifiestos, resultados de observabilidad y prueba funcional. ¿Qué señales justificarían rollback automático?
 
-El pipeline de tests está implementado, pero **el CD automático por forks y credenciales GitHub OIDC de mínimo privilegio está pendiente**. No deben guardarse kubeconfigs administrativos ni credenciales compartidas en los forks.
+El pipeline de tests está implementado, pero **el CD automático desde los forks mediante credenciales GitHub OIDC no forma parte de esta práctica**. No deben guardarse kubeconfigs administrativos ni credenciales compartidas en los forks.
 
 ## SUPPORT
 
@@ -106,4 +106,3 @@ Entrega cuatro frases — **predije, cambié, observé, concluyo** — con revis
 3. ¿Qué principio de mínimo privilegio debe cumplir un futuro CD desde forks?
 4. ¿Cómo evitarías que un alumno modifique recursos del compañero?
 
-**Estado técnico:** rollout y rollback validados en AKS con la identidad real `student02` desde un fork independiente. La implementación de CD automático por alumno con GitHub OIDC sigue pendiente; este ensayo valida la parte operativa y el pipeline de CI existente, no un CD completo.
