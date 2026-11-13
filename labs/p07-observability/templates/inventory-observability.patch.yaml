@@ -1,0 +1,15 @@
+# Complete the exposure and log format using the lab requirements.
+# Keep the published image, delay baseline and existing agent/mesh settings.
+spec:
+  template:
+    spec:
+      containers:
+        - name: inventory
+          image: advms26acr4366001b.azurecr.io/advancedorders/inventory:0.1.0-p07
+          env:
+            - name: TRAINING_INVENTORY_DELAY_MS
+              value: "0"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "" # TODO: keep health/info and enable metrics
+            - name: LOGGING_PATTERN_CONSOLE
+              value: "" # TODO: add trace_id/span_id MDC correlation

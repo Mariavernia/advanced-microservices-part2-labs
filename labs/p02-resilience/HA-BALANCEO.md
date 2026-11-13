@@ -1,24 +1,35 @@
 # P02-H — Balanceo y alta disponibilidad a nivel de nodo
 
-Extensión de P02; requiere **dos nodos user Ready y elegibles para scheduling**. Esta práctica NO valida disponibilidad multizona; el node pool actual es regional sin zonas explícitas. Es una ampliación opcional de P02: no forma parte del recorrido CORE ni debe ejecutarse si faltan recursos o permisos.
+Extensión de P02; requiere **dos nodos user Ready y elegibles para scheduling**. Esta práctica NO valida disponibilidad multizona; el node pool actual es regional sin zonas explícitas. Forma parte del recorrido cuando el instructor confirma capacidad; no debe ejecutarse si faltan recursos o permisos.
 
-## Prediccion
+## Predicción
 
 - ¿Como distribuye un Service entre varias replicas?
 - ¿Que pasa si dos replicas comparten el mismo host y este falla?
 - ¿Que protegen realmente un PodDisruptionBudget y topologySpreadConstraints?
 
-## Ejecucion guiada con el instructor
+## Construye la política de distribución y el PDB
 
-El instructor comprueba antes que existen al menos dos nodos user disponibles y capacidad libre. No necesitas permisos para listar nodos. Solo se modifica el Deployment Orders del namespace propio.
+El instructor comprueba antes que existen al menos dos nodos user disponibles y capacidad libre. No necesitas permisos para listar nodos. Solo se modifica Orders en tu namespace. Crea tus archivos de trabajo antes de aplicar cambios.
+
+Copia los archivos de partida y edítalos para cumplir el contrato: topologySpreadConstraints por hostname, maxSkew=1, minDomains=2 y DoNotSchedule, selector del Deployment Orders. El PDB debe permitir como mínimo una réplica disponible durante evicciones voluntarias. Comprueba qué labels debe seleccionar.
+
+~~~bash
+cp labs/p02-resilience/templates/03-orders-spread.patch.yaml work/p02/orders-spread.patch.yaml
+cp labs/p02-resilience/templates/04-orders-pdb.yaml work/p02/orders-pdb.yaml
+~~~
+
+Completa todos los TODO. Valida los archivos con dry-run antes de aplicarlos.
 
 ~~~bash
 kubectl get pods -l app.kubernetes.io/name=orders -o wide
 kubectl patch hpa orders --type=merge -p '{"spec":{"minReplicas":2}}'
-kubectl patch deployment orders --type=merge --patch-file labs/p02-resilience/manifests/03-orders-topology-spread.json
+kubectl patch deployment orders --type=merge --patch-file work/p02/orders-spread.patch.yaml --dry-run=server -o yaml
+kubectl patch deployment orders --type=merge --patch-file work/p02/orders-spread.patch.yaml
 kubectl rollout status deployment/orders --timeout=180s
 kubectl get pods -l app.kubernetes.io/name=orders -o wide
-kubectl apply -f labs/p02-resilience/manifests/04-orders-pdb.yaml
+kubectl apply --dry-run=server -f work/p02/orders-pdb.yaml
+kubectl apply -f work/p02/orders-pdb.yaml
 kubectl get pdb orders-ha-demo
 kubectl get endpointslice -l kubernetes.io/service-name=orders
 ~~~
@@ -58,6 +69,8 @@ fallo de zona, problemas del plano de control ni disponibilidad de Inventory.
 
 ## Limpieza
 
+Conserva tus probes y la reserva CPU. Retira solo los cambios de alta disponibilidad; el cierre de P02 retirará el HPA y restaurará una réplica.
+
 ~~~bash
 kubectl delete pdb orders-ha-demo --ignore-not-found
 kubectl patch hpa orders --type=merge -p '{"spec":{"minReplicas":1}}'
@@ -67,7 +80,6 @@ if [[ -n "$(kubectl get deployment orders -o jsonpath='{.spec.template.spec.topo
   kubectl patch deployment orders --type=json \
     -p='[{"op":"remove","path":"/spec/template/spec/topologySpreadConstraints"}]'
 fi
-kubectl apply -f labs/p02-resilience/manifests/01-orders-probes.yaml
 kubectl rollout status deployment/orders --timeout=180s
 ~~~
 

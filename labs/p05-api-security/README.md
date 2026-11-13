@@ -1,195 +1,248 @@
-# P05 — Proteger una API con OAuth 2.0, OIDC, JWT y Keycloak
+# P05 — Proteger una API con OAuth 2.0, OIDC, JWT y rate limiting
 
-**Modalidad:** individual desde Codespaces, con una práctica guiada basada en la
-misma Advanced Orders Platform. **Prerequisito:** P01 operativo y Keycloak
-compartido configurado por el instructor. **Sin instalaciones locales.** Sigue [la metodología de prácticas](../../docs/METODOLOGIA-PRACTICAS.md): predicción, exploración, diagnóstico y evidencia. Los scripts de autenticación evitan manejar credenciales manualmente; no son la solución intelectual de la práctica.
+**Modo:** individual, desde tu fork y Codespaces. **Prerequisito:** P01 operativo y Gateway estable; finaliza los experimentos de P03 antes de empezar. Keycloak HTTPS compartido y cuentas individuales preparados por el instructor. Sigue [la metodología](../../docs/METODOLOGIA-PRACTICAS.md).
 
-## Problema
+## Escenario
 
-P01 permitió llamar a todas las rutas del Gateway sin autenticar. Ahora
-necesitamos distinguir **identidad del cliente**, **integridad del token** y
-**autorización para cada operación**.
+Advanced Orders ofrece rutas de pedidos, inventario, envíos, pagos y notificaciones. Necesitas protegerlas, aplicar mínimo privilegio y limitar el consumo de una ruta de negocio sin confundir identidad, autorización y disponibilidad.
 
-El Gateway actuará como **OAuth 2.0 Resource Server**. Keycloak será el
-proveedor OIDC compartido. No instalaremos Keycloak en el namespace del alumno.
-La autorización por roles ocurrirá en el Gateway y no en el código de negocio.
+No instalarás Keycloak ni escribirás un Resource Server desde cero. Tu trabajo consiste en **configurar la integración, verificar la política, resolver un fallo de seguridad y ajustar un límite de peticiones**. Los helpers de autenticación y HTTP evitan exponer los JWT; no deciden qué pruebas realizar.
 
-## Objetivos CORE
+## CORE 1 — Reconoce el contrato de identidad
 
-- Diferenciar OAuth 2.0 (delegación/autorización), OIDC (identidad) y JWT
-  (formato de token). No son sinónimos.
-- Explicar por qué decodificar base64 no verifica la firma de un JWT.
-- Obtener un token sin escribir contraseñas ni secretos en Git (Device Authorization Grant).
-- Interpretar los códigos HTTP **401**, **403** y **200** con evidencia.
-- Leer las reglas de autorización y localizar roles de Keycloak.
-- Reconocer el límite de proteger solo el Gateway cuando existen rutas internas.
+Desde la raíz del repositorio:
 
-## Preparación del instructor (dependencia externa)
-
-El instructor debe proporcionar:
-
-- Keycloak **HTTPS**, accesible desde el navegador/Codespaces y desde AKS.
-- Un realm OIDC con URL de issuer exacta en `config/course.env`:
-  `OIDC_ISSUER_URI=https://.../realms/advanced-orders`.
-- Client **público** `advanced-orders-cli`, con Device Authorization Grant
-  habilitado y mapeo del público `aud` = `advanced-orders-api`.
-- Usuarios de práctica con roles realm `orders-reader` y `platform-admin`.
-- La imagen `advancedorders/api-gateway:0.2.0-sec` publicada en ACR por el instructor.
-- Los alumnos no administran el realm ni conocen credenciales administrativas.
-
-Si alguno de estos requisitos falta, **P05 no está preparado para ejecutarse**.
-No cambies el Gateway anterior para intentar compensar un problema de identidad.
-
-## CORE 1 — Antes y después de proteger una ruta
-
-Inspecciona estos archivos:
-
-- `services/api-gateway/src/main/java/com/advancedorders/apigateway/security/GatewaySecurityConfiguration.java`
-- `services/api-gateway/src/main/resources/application-p05-security.yml`
-- `manifests/01-api-gateway-secure.yaml`
-
-¿Qué ocurre cuando `SPRING_PROFILES_ACTIVE=p05-security`? ¿Por qué la aplicación
-P00–P04 no se protege automáticamente al compilar el código de P05?
-
-**No ejecutes todavía ningún verificador.** Inspecciona las reglas de autorización del Gateway, el mapeo de `realm_access.roles` y las condiciones de validación de JWT (issuer y audience). Predice qué respuestas recibirán tres peticiones a `/api/payments/methods`:
-sin token, con usuario lector y con administrador. Escribe además qué parte se debe a autenticación y cuál a autorización.
-
-## CORE 2 — Preparar y desplegar el Gateway protegido
-
-**No recrees los seis servicios:** solo cambiaremos la revisión del Gateway.
-
-```bash
+~~~bash
 ./scripts/preflight.sh
 bash labs/p01-complete-platform/scripts/verify.sh
-bash labs/p05-api-security/scripts/deploy.sh
+source config/course.env
+curl -fsS --max-time 15 "$OIDC_ISSUER_URI/.well-known/openid-configuration" |
+  jq '{issuer,jwks_uri,device_authorization_endpoint,token_endpoint}'
+~~~
+
+Identifica el issuer exacto, la URL de claves públicas JWKS y los dos endpoints del Device Grant. Comprueba que usan HTTPS. No uses curl -k, no cambies el realm, no añadas secretos al cliente público.
+
+El instructor proporciona el client ID y la audiencia esperada en config/course.env. **La audiencia del recurso no es necesariamente el client ID**. Consulta los dos valores y explica qué representa cada uno.
+
+Abre:
+- services/api-gateway/src/main/java/com/advancedorders/apigateway/security/GatewaySecurityConfiguration.java
+- services/api-gateway/src/main/resources/application-p05-security.yml
+- labs/p05-api-security/manifests/01-api-gateway-secure.yaml
+
+Localiza el perfil de seguridad, las reglas de rutas y el mapeo de roles. Predice las respuestas de Orders y Payments para una petición anónima, un lector y un administrador. ¿Qué rutas pueden acceder a health sin credenciales? ¿Qué ocurre con una ruta no contemplada en las reglas?
+
+## CORE 2 — Configura el Resource Server
+
+Crea tu configuración de trabajo:
+
+~~~bash
+mkdir -p work/p05
+cp labs/p05-api-security/templates/security-settings.yaml work/p05/security-settings.yaml
+~~~
+
+Completa en el editor el issuer observado en discovery y la audiencia del recurso indicada en config/course.env. Son identificadores no secretos. No pongas la contraseña ni el client secret en el ConfigMap.
+
+Abre el manifiesto del Gateway protegido. Comprueba la referencia al ConfigMap, la imagen 0.2.0-sec, el perfil p05-security y las probes. El helper deploy.sh queda reservado para recuperación; **no lo ejecutes como recorrido principal**.
+
+~~~bash
+kubectl apply --dry-run=server -f work/p05/security-settings.yaml
+kubectl apply -f work/p05/security-settings.yaml
+kubectl apply -f labs/p05-api-security/manifests/01-api-gateway-secure.yaml
+kubectl rollout status deployment/api-gateway --timeout=300s
+kubectl get configmap p05-security-settings -o yaml
 kubectl get deployment api-gateway
-kubectl describe deployment api-gateway
-```
+~~~
 
-Este **helper prepara la integración**, pero no resuelve el ejercicio: después de ejecutarlo, debes abrir el Deployment y localizar por tu cuenta la imagen, el perfil activo, las variables OIDC y las sondas de salud. Explica qué cambiaría si el emisor anunciado por Keycloak no coincide con el emisor configurado.
+No recrees los otros cinco microservicios. Si el Gateway no arranca, revisa referencias, eventos, logs y discovery antes de modificar la configuración. No desactives la seguridad para hacer pasar el ejercicio.
 
-El script valida el OIDC metadata y crea un ConfigMap con identificadores
-**no secretos**. El manifiesto usa la imagen distinta `0.2.0-sec` y activa
-`p05-security`. Si la imagen no existe, debes informar al instructor: no
-hagas builds ni cambios administrativos en el ACR.
+Terminal A (mantén activo el port-forward privado):
 
-## CORE 3 — Observar un HTTP 401 sin credenciales
-
-Abre otra terminal y mantén activo:
-
-```bash
+~~~bash
 kubectl port-forward service/api-gateway 8080:8080
-```
+~~~
 
-Desde una segunda terminal:
+Terminal B:
 
-```bash
-curl -i 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2'
-curl -i 'http://localhost:8080/actuator/health'
-```
+~~~bash
+curl -i 'http://127.0.0.1:8080/api/orders/preview?sku=SKU-001&quantity=2'
+curl -i 'http://127.0.0.1:8080/actuator/health'
+~~~
 
-Esperado: Orders sin token → **401**; health check → **200**.
-La disponibilidad del proceso no debe depender de iniciar sesión como usuario.
+Registra 401 y 200 respectivamente. Si el port-forward se interrumpe al reemplazar un Pod, vuelve a abrirlo después del rollout. La salud del proceso no requiere una sesión de usuario.
 
-## CORE 4 — Obtener tokens mediante Device Authorization Grant
+## CORE 3 — Obtén y examina las identidades
 
-**No uses usuarios o contraseñas en scripts.** El instructor facilitará individualmente tus cuentas de práctica `studentNN-reader` y `studentNN-admin` (NN es tu número de alumno). El código del dispositivo se valida en el navegador.
+Utiliza exclusivamente las cuentas Keycloak asignadas por el instructor. La identidad Entra que te permite operar AKS es distinta de la identidad de la aplicación.
 
-```bash
+~~~bash
 bash labs/p05-api-security/scripts/device-login.sh reader
-```
+~~~
 
-Completa el login del lector en una ventana privada. Cierra esa sesión privada antes de iniciar el segundo flujo (una sesión SSO existente podría reutilizar la cuenta anterior):
+Abre el enlace de dispositivo en una ventana privada, inicia sesión como lector y autoriza la solicitud. No compartas el código. Cierra todas las ventanas privadas de esa sesión antes de solicitar el perfil admin:
 
-```bash
+~~~bash
 bash labs/p05-api-security/scripts/device-login.sh admin
-```
+~~~
 
-Ambos tokens quedan en archivos privados dentro de `~/.cache/advanced-orders`,
-fuera de Git, sin mostrarse en terminal. Usa una cuenta Keycloak con el rol
-correspondiente para cada autenticación. No compartas estos archivos.
+Los tokens se guardan en ~/.cache/advanced-orders, con permisos privados. No los muestres ni copies. El helper de peticiones lee el archivo en memoria y conecta únicamente con el port-forward local; no envía el token como argumento de shell ni sigue redirects.
 
-## CORE 5 — 401 frente a 403: interpreta el control de acceso
+Inspecciona únicamente los claims seleccionados:
 
-**Antes de ejecutar el verificador**, prepara una tabla con tus predicciones sobre cinco peticiones (sin copiar ni imprimir tokens). Examina las reglas Java y la configuración del cliente. La obtención y manejo de JWT se mantiene en helpers seguros para no exponer credenciales en el historial del shell, capturas o argumentos de procesos. **No intentes extraer ni pegar los JWT** para hacer peticiones manuales.
+~~~bash
+python3 labs/p05-api-security/scripts/request.py reader --claims
+python3 labs/p05-api-security/scripts/request.py admin --claims
+~~~
 
-Con `port-forward` activo, ejecuta al final la comprobación HTTP segura:
+Comprueba iss, aud, exp y roles. Un decode local **no valida la firma** ni demuestra que el token sea aceptable. Si ambos perfiles contienen roles privilegiados, revisa qué cuenta utilizaste; vuelve a iniciar el Device Grant en una nueva sesión privada.
 
-```bash
+## CORE 4 — Construye tu matriz de autorización
+
+Elige y ejecuta las peticiones una a una. La sintaxis es:
+
+~~~bash
+python3 labs/p05-api-security/scripts/request.py PERFIL 'RUTA'
+~~~
+
+PERFIL puede ser none, invalid, reader o admin. El helper realiza una petición, muestra código HTTP y, cuando exista, Retry-After. Sustituye los marcadores por valores reales. Ejemplo de una prueba con un token deliberadamente inválido (no se modifica ningún token real):
+
+~~~bash
+python3 labs/p05-api-security/scripts/request.py invalid '/api/orders/preview?sku=SKU-001&quantity=2'
+~~~
+
+Completa tu matriz, utilizando las reglas Java y las rutas de P01:
+
+| Perfil | Ruta | Predicción | HTTP observado | Regla que lo explica |
+|---|---|---|---|---|
+| none | Orders preview | | | |
+| invalid | Orders preview | | | |
+| reader | Orders preview | | | |
+| reader | Payments methods | | | |
+| admin | Payments methods | | | |
+| reader | Shipping quote | | | |
+| reader | Notifications provider | | | |
+| admin | Notifications provider | | | |
+| none | Actuator health | | | |
+
+Usa las rutas completas y parámetros de P01. Distingue ausencia o invalidez de autenticación (401), falta de autorización de una identidad válida (403) y éxito (200). No cambies los roles compartidos para resolver una denegación esperada.
+
+**Checkpoint:** elige una ruta adicional y prueba con ambos perfiles. Justifica el resultado a partir de la regla, no de una etiqueta PASS. El verificador final se ejecutará solo después de recuperar la configuración y retirar el rate limit de entrenamiento.
+
+## CORE 5 — Diagnostica un fallo de audiencia
+
+El proveedor no ha cambiado y las peticiones autenticadas funcionaban. Simula un error de integración del Resource Server: edita tu ConfigMap de trabajo y cambia únicamente OIDC_AUDIENCE a un identificador de recurso diferente, por ejemplo advanced-orders-wrong. No alteres el issuer, la cuenta, el JWT ni las reglas de autorización.
+
+Antes de aplicar, predice el efecto sobre health, Orders con lector y Payments con administrador. Un ConfigMap consumido como variables de entorno requiere recrear los Pods para incorporar sus cambios.
+
+~~~bash
+kubectl apply -f work/p05/security-settings.yaml
+kubectl rollout restart deployment/api-gateway
+kubectl rollout status deployment/api-gateway --timeout=300s
+~~~
+
+Reabre el port-forward si es necesario y repite tres peticiones elegidas. Compara la audiencia que observaste en los claims con el ConfigMap y consulta logs:
+
+~~~bash
+kubectl get configmap p05-security-settings -o yaml
+kubectl logs deployment/api-gateway --tail=60
+~~~
+
+Explica por qué un usuario con el rol correcto puede recibir 401 y por qué health puede seguir en 200. No supongas que se ha roto la firma. Si el token expiró durante el ejercicio, renueva el mismo perfil y repite.
+
+**Recuperación:** restaura en tu fichero la audiencia correcta, aplica el ConfigMap y reinicia el Gateway. Repite la matriz mínima: anónimo Orders 401, lector Orders 200, lector Payments 403, administrador Payments 200. Conserva las evidencias antes/después. No utilices el helper de despliegue para ocultar el error.
+
+## CORE 6 — Rate limiting por identidad autenticada
+
+### Requisitos y alcance
+
+El instructor debe confirmar la disponibilidad de la imagen adicional api-gateway:0.2.1-rate en el ACR del entorno. Si aún no está publicada, conserva el Gateway 0.2.0-sec protegido y no ejecutes este bloque hasta que el instructor lo indique.
+
+El código de entrenamiento está en CourseRateLimiter.java y CourseRateLimitFilter.java. Implementa una ventana fija local a una instancia, con contador por subject del JWT autenticado. Solo limita GET /api/orders/preview, tras el filtro de seguridad. Devuelve HTTP 429 y Retry-After cuando se agota el presupuesto. No utiliza IP ni headers controlados por el cliente. El contador se reinicia por ventana y al recrear el Pod. No es una protección DDoS de perímetro, ni una cuota global distribuida, ni un token bucket.
+
+### Configura el límite
+
+Copia el manifiesto del Gateway seguro en tu carpeta de trabajo:
+
+~~~bash
+cp labs/p05-api-security/manifests/01-api-gateway-secure.yaml work/p05/gateway-rate.yaml
+~~~
+
+Modifica únicamente tu copia:
+- cambia la etiqueta de imagen a 0.2.1-rate y la label de versión de la plantilla al mismo valor;
+- conserva una réplica, el ConfigMap de OIDC y las probes;
+- activa los perfiles p05-security,p05-rate-limit;
+- añade las variables P05_RATE_LIMIT_REQUESTS y P05_RATE_LIMIT_WINDOW_SECONDS en env, con valores de cadena YAML. Empieza con 3 peticiones por ventana de 10 segundos.
+
+Predice qué sucede con una ráfaga de 8 peticiones de un lector. ¿El contador se comparte con un administrador? ¿Qué pasa al cruzar el límite de una ventana?
+
+~~~bash
+kubectl apply --dry-run=server -f work/p05/gateway-rate.yaml
+kubectl apply -f work/p05/gateway-rate.yaml
+kubectl rollout status deployment/api-gateway --timeout=300s
+~~~
+
+Si el port-forward termina, vuelve a abrirlo. Verifica primero que la seguridad sigue funcionando (none 401, reader Payments 403, admin Payments 200, health 200). Renueva tokens si es necesario.
+
+### Experimenta y ajusta
+
+Ejecuta una ráfaga acotada contra tu propio Gateway. No generes carga fuera de este namespace.
+
+~~~bash
+python3 labs/p05-api-security/scripts/request.py reader '/api/orders/preview?sku=SKU-001&quantity=2' --repeat 8
+~~~
+
+Registra los códigos y Retry-After de las respuestas 429. En una ventana fija pueden existir más éxitos de lo previsto si el experimento cruza un límite de ventana; no presupongas una distribución exacta. Repite tras recuperar el presupuesto si la primera ráfaga no permite observar 429. Si el tráfico sigue sin alcanzar el límite, reduce el presupuesto a 1 mediante tu configuración y repite. No aumentes el número de peticiones indiscriminadamente.
+
+Comprueba con el perfil admin si dispone de un presupuesto independiente; haz la prueba dentro de la misma ventana si es posible. Después de Retry-After, verifica que el lector puede acceder de nuevo. Confirma que una ruta autorizada distinta y health no consumen la cuota de Orders.
+
+**Tu decisión:** cambia la configuración a 2 peticiones por ventana de 15 segundos y repite el experimento. Explica por qué no basta con modificar un archivo local: debes aplicar el Deployment, esperar el rollout y reabrir el túnel. Compara ambas políticas e indica qué efectos podría tener una cuota demasiado estricta.
+
+### Límites y cierre de rate limiting
+
+El filtro solo cubre el Gateway y la ruta configurada. Dos réplicas tendrían contadores independientes y un reinicio perdería el estado. En producción compara con un token bucket distribuido, Redis con operación atómica o un gateway gestionado; define qué harías si el almacén de cuotas falla. No afirmes que una ventana fija evita ráfagas en su frontera.
+
+**Restaura el Gateway seguro original antes de P06/P07.** Reaplica el manifiesto 01-api-gateway-secure.yaml y elimina explícitamente las variables de rate limit que añadiste. Comprueba el perfil, imagen y rollout. No borres el ConfigMap de OIDC ni desactives el Resource Server.
+
+~~~bash
+kubectl apply -f labs/p05-api-security/manifests/01-api-gateway-secure.yaml
+kubectl set env deployment/api-gateway P05_RATE_LIMIT_REQUESTS- P05_RATE_LIMIT_WINDOW_SECONDS-
+kubectl rollout status deployment/api-gateway --timeout=300s
+kubectl get deployment api-gateway -o json | jq '.spec.template.spec.containers[] | {image,env}'
+~~~
+
+Reabre el port-forward y confirma el resultado con la matriz de autorización.
+
+## CORE 7 — Reto de transferencia: el bypass del Gateway
+
+El equipo afirma que todas las operaciones de Orders están protegidas porque una petición anónima al Gateway devuelve 401. Diseña una comprobación de esa afirmación desde un Pod de tu namespace, usando los comandos de diagnóstico de P01. No publiques un Service ni cambies NetworkPolicy, RBAC o Istio.
+
+Pista: el contenedor Gateway dispone de curl y los Services internos conservan sus nombres DNS. Compara la respuesta al Gateway sin JWT con la respuesta directa a Orders por su Service, también sin JWT. Selecciona tú la ruta y registra ambas respuestas.
+
+¿La autorización del Gateway protege todas las comunicaciones entre workloads? ¿Una política mTLS equivale a autorización por usuario? ¿Qué controles adicionales requerirías para impedir el bypass? No implementes cambios que bloqueen las prácticas siguientes.
+
+## Evidencia y cierre
+
+Con la versión 0.2.0-sec y el perfil p05-security restaurados:
+
+~~~bash
 bash labs/p05-api-security/scripts/verify.sh
-```
+~~~
 
-Completa la tabla con los resultados reales y señala, para cada respuesta, la regla o condición que la explica:
+Entrega:
+- ConfigMap y manifiesto de rate limit de trabajo, sin credenciales.
+- Claims seleccionados sin JWT, matriz HTTP y explicación de las reglas.
+- Evidencia de audiencia incorrecta y recuperación.
+- Resultados 200/429, Retry-After y comparación de políticas.
+- Evidencia del bypass y propuesta de controles.
 
-| Petición | Evidencia prevista |
-|---|---|
-| Orders sin token | 401 |
-| Actuator health sin token | 200 |
-| Orders con `orders-reader` | 200 |
-| Payments con `orders-reader` | 403 |
-| Payments con `platform-admin` | 200 |
-
-**401:** no hay un token válido para autenticar la petición.  
-**403:** el cliente se ha autenticado, pero no tiene autorización.
-
-**Checkpoint de investigación:** distingue un rechazo por JWT inválido (401), un rechazo por privilegios insuficientes (403) y una autorización exitosa (200). En cada caso identifica la evidencia disponible en política, HTTP y logs, evitando mostrar el valor del JWT.
-
-Inspecciona cómo se convierten los roles Keycloak `realm_access.roles` a
-autoridades de Spring. ¿Qué ocurriría si todos los usuarios recibieran el rol
-`platform-admin`?
-
-## CORE 6 — Analizar las garantías de seguridad
-
-Un JWT debe ser validado por el receptor: firma, emisor (`iss`),
-audiencia (`aud`) y tiempos (`exp`, `nbf`) según aplique. Los
-`scopes` y `roles` se interpretan **después** de esas validaciones.
-
-La demo usa port-forward al Gateway. Pregunta crítica: ¿podría otro Pod del
-mismo namespace invocar Orders directamente, sin pasar por el Gateway?
-
-**Sí, salvo que existan controles adicionales que lo impidan.** Proteger solo
-el Gateway no es protección completa entre workloads. P06 introducirá controles
-en la malla y políticas de red. No afirmes que se ha logrado seguridad extremo
-a extremo por comprobar únicamente 401 y 403 en el Gateway.
+El verificador comprueba el estado final de seguridad, no sustituye los experimentos. Conserva los tokens privados y el Gateway protegido para P06/P07. No ejecutes cleanup salvo indicación del instructor.
 
 ## SUPPORT
 
-```bash
-kubectl logs deployment/api-gateway --tail=50
-kubectl describe pod -l app.kubernetes.io/name=api-gateway
-kubectl get configmap p05-security-settings
-kubectl get endpointslice -l kubernetes.io/service-name=api-gateway
-```
+- 401 inesperado: revisa expiración, issuer y audiencia; renueva el perfil correcto.
+- 403 inesperado: comprueba roles y ruta, no modifiques el realm.
+- 429 inesperado: revisa perfil activo, configuración y ventana.
+- Rollout bloqueado: consulta describe, eventos y logs; confirma imagen y ConfigMap.
+- Port-forward desconectado: espera al Pod Ready y vuelve a abrir el túnel privado.
+- Si el instructor indica recuperación de P05, usa scripts/deploy.sh para restaurar el Gateway seguro con los identificadores del entorno. scripts/cleanup.sh vuelve al Gateway sin autenticación de P01: no lo uses como solución a un 401.
 
-Diagnóstico por síntoma:
-- `ImagePullBackOff`: falta imagen o pull desde ACR.
-- `issuer mismatch`: hostname/issuer declarado no coincide con Keycloak.
-- `401` con token: firma, tiempo, issuer o audiencia pueden ser incorrectos.
-- `403` con token: revisar el mapeo de roles y la regla del endpoint.
-- `502` con token válido: puede ser un upstream caído, no un error OIDC.
-
-**Nunca pegues JWT en un chat, issue, commit o captura.**
-
-## STRETCH
-
-Propón controles adicionales: validación de audiencia en servicios internos,
-NetworkPolicy que impida el bypass, gateway TLS, autorización de mínimo privilegio,
-Keycloak accesible con HA, registro de fallos de autorización sin datos sensibles
-y gestión de rotación de claves JWT.
-
-## Evidencia de cierre
-
-Entrega cuatro frases: **predije, cambié/inspeccioné, observé, concluyo**. Incluye la tabla 401/403/200 con su causa, una captura o referencia a la regla de autorización y un límite de seguridad que **no** resuelve la protección del Gateway. Ejecutar el script de verificación sin poder justificar los resultados no completa P05.
-
-## Cierre y recuperación (solo si lo indica el instructor)
-
-Conserva el Gateway protegido y las credenciales locales para P06/P07. No ejecutes el cleanup entre prácticas salvo indicación del instructor.
-
-```bash
-bash labs/p05-api-security/scripts/cleanup.sh
-rm -f ~/.cache/advanced-orders/reader.jwt ~/.cache/advanced-orders/admin.jwt
-```
-
-El cleanup restaura la imagen y configuración del Gateway de P01 en tu namespace.
-No modifica el Keycloak compartido ni los datos de otros alumnos.
-
+Nunca compartas tokens, device codes, contraseñas ni kubeconfigs.

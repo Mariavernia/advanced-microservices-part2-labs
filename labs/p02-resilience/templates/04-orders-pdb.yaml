@@ -1,0 +1,10 @@
+# STARTER: complete TODOs before applying.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orders-ha-demo
+spec:
+  minAvailable: null # TODO
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: null # TODO: target Orders

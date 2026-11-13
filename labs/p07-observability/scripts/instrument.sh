@@ -2,7 +2,8 @@
 set -euo pipefail
 # P07 pilot: instrument existing workloads, preserving P05 JWT and P06 mesh.
 # No cluster administration or changes to base images. Run from student Codespace.
-# Usage: bash labs/p07-observability/scripts/instrument.sh [backend|gateway]
+# Usage: bash labs/p07-observability/scripts/instrument.sh [backend|gateway] [settings.json]
+# Optional settings file must satisfy the private Jaeger lab contract.
 #        CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh backend
 #        CONFIRM_P07_INSTRUMENT=YES bash labs/p07-observability/scripts/instrument.sh gateway
 # Separate phases keep working backend instrumentation if the Gateway fails.
@@ -17,17 +18,36 @@ kubectl get deploy p07-jaeger -o json | jq -e '.status.readyReplicas==1' >/dev/n
 # Official linux/amd64 image, pinned manifest digest (AKS x86 nodes).
 AGENT="ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.30.0@sha256:f5133aceb480d0779b8ce288a52ddbc80414ba9774818de111f2351f02f3eb94"
 PHASE="${1:-backend}"
+SETTINGS="${2:-}"
+[[ "$#" -le 2 ]] || { echo "Usage: $0 [backend|gateway] [settings.json]" >&2; exit 2; }
 case "$PHASE" in
   backend) APPS=(inventory orders);;
   gateway) APPS=(api-gateway);;
   *) echo "Usage: $0 [backend|gateway]" >&2; exit 2;;
 esac
+# Default retained for instructor recovery; students supply their own settings.
+if [[ -n "$SETTINGS" ]]; then
+  [[ -f "$SETTINGS" ]] || { echo "[FAIL] Settings file missing"; exit 2; }
+  CONFIG="$(cat "$SETTINGS")"
+else
+  CONFIG='{"endpoint":"http://p07-jaeger:4318/v1/traces","protocol":"http/protobuf","traces":"otlp","metrics":"none","logs":"none","sampler":"parentbased_always_on","services":{"inventory":"inventory","orders":"orders","api-gateway":"api-gateway"}}'
+fi
+jq -e '
+  type=="object" and
+  .endpoint=="http://p07-jaeger:4318/v1/traces" and .protocol=="http/protobuf" and
+  .traces=="otlp" and .metrics=="none" and .logs=="none" and
+  .sampler=="parentbased_always_on" and
+  .services=={"inventory":"inventory","orders":"orders","api-gateway":"api-gateway"} and
+  (keys|sort)==(["endpoint","protocol","traces","metrics","logs","sampler","services"]|sort)
+' <<<"$CONFIG" >/dev/null || {
+  echo "[FAIL] Settings do not satisfy the private Jaeger contract. Complete your file using Service ports, OTLP protocol, trace-only export, sampling and workload names." >&2; exit 2;
+}
 echo "===== P07 PHASE: $PHASE ====="
 declare -A OLD_REV
 declare -a CHANGED=()
 
 patch_for() {
-  jq -nc --arg app "$1" --arg image "$AGENT" '
+  jq -nc --arg app "$1" --arg image "$AGENT" --argjson config "$CONFIG" '
   {spec:{template:{spec:{
     securityContext:{fsGroup:10001},
     volumes:[{name:"p07-otel-agent",emptyDir:{sizeLimit:"96Mi"}}],
@@ -46,13 +66,13 @@ patch_for() {
       volumeMounts:[{name:"p07-otel-agent",mountPath:"/otel",readOnly:true}],
       env:[
         {name:"JAVA_TOOL_OPTIONS",value:"-javaagent:/otel/javaagent.jar"},
-        {name:"OTEL_SERVICE_NAME",value:$app},
-        {name:"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",value:"http://p07-jaeger:4318/v1/traces"},
-        {name:"OTEL_EXPORTER_OTLP_PROTOCOL",value:"http/protobuf"},
-        {name:"OTEL_TRACES_EXPORTER",value:"otlp"},
-        {name:"OTEL_METRICS_EXPORTER",value:"none"},
-        {name:"OTEL_LOGS_EXPORTER",value:"none"},
-        {name:"OTEL_TRACES_SAMPLER",value:"parentbased_always_on"},
+        {name:"OTEL_SERVICE_NAME",value:$config.services[$app]},
+        {name:"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",value:$config.endpoint},
+        {name:"OTEL_EXPORTER_OTLP_PROTOCOL",value:$config.protocol},
+        {name:"OTEL_TRACES_EXPORTER",value:$config.traces},
+        {name:"OTEL_METRICS_EXPORTER",value:$config.metrics},
+        {name:"OTEL_LOGS_EXPORTER",value:$config.logs},
+        {name:"OTEL_TRACES_SAMPLER",value:$config.sampler},
         {name:"OTEL_PROPAGATORS",value:"tracecontext,baggage"},
         {name:"OTEL_BSP_SCHEDULE_DELAY",value:"1000"}
       ]
