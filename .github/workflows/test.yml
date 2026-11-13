@@ -29,6 +29,8 @@ jobs:
             }
             END { exit bad }
           '
+      - name: Test release policy helper (P03)
+        run: python3 labs/p03-rollouts-ci/scripts/test-release-policy.py
       - name: Parse Kubernetes YAML
         run: |
           python3 -m pip install --user pyyaml

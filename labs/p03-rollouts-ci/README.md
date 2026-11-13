@@ -64,6 +64,8 @@ git commit -m "Add release policy gate and candidate configuration"
 git push -u origin p03-release
 ~~~
 
+Si GitHub rechaza el push por falta de permiso para modificar workflows, no desactives los controles. Comprueba la autorización de tu cuenta GitHub y solicita ayuda al instructor. Como alternativa, edita el workflow desde la interfaz web de tu fork, en la misma rama, y sincroniza tu Codespace antes de continuar. No compartas tokens personales.
+
 En GitHub abre un pull request **dentro de tu fork**: base repository = tu fork, base = main, head = p03-release de tu fork. La interfaz puede ofrecer por defecto el repositorio de origen: cámbialo antes de crear el PR. No abras PR hacia el repositorio del curso.
 
 En Checks / Actions abre la ejecución y localiza el job build-test y el paso P03 release policy. Si el workflow falla antes de llegar a tu paso, diagnostica primero ese fallo. Si no se inicia, comprueba Actions habilitado y que el PR apunta a tu fork.
@@ -111,7 +113,7 @@ python3 labs/p03-rollouts-ci/scripts/check-release.py work/p03/orders-release.pa
 kubectl patch deployment orders --type=strategic --patch-file work/p03/orders-release.patch.json --dry-run=server -o yaml
 ~~~
 
-Si no coincide el commit aprobado, no promociones. Aplica tu patch:
+Si no coincide el commit aprobado, no promociones. Puedes comparar el fichero con la versión exacta del SHA verde usando git show y cmp. Aplica tu patch:
 
 ~~~bash
 kubectl patch deployment orders --type=strategic --patch-file work/p03/orders-release.patch.json
