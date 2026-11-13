@@ -299,7 +299,7 @@ Tu objetivo es reproducir esta carrera, identificar el dato obsoleto y proponer 
 
 Utiliza ORD-DEMO-002, que terminó CORE G en versión 3. Elimina únicamente su clave de caché si existe. Lee la fila real y guarda el JSON en una variable local `STALE`, usando el patrón json_build_object de CORE E **añadiendo el campo version**. Comprueba el JSON antes de continuar.
 
-Como escritor B, decide una modificación válida (por ejemplo, una unidad más) y usa tu sentencia optimista con la versión actual. Confirma que PostgreSQL ha cambiado y que la versión aumenta. Invalida la clave Redis.
+Como escritor B, suma una unidad a la cantidad actual y usa tu sentencia optimista con la versión actual. Confirma que PostgreSQL ha cambiado y que la versión aumenta. Invalida la clave Redis.
 
 Como lector A, escribe ahora el JSON guardado en STALE con SET y EX 120. Compara Redis con PostgreSQL. El valor que acabas de guardar es antiguo, aunque B invalidó correctamente la clave. Registra ambas versiones y el TTL.
 
@@ -322,7 +322,7 @@ Documenta una política para cada tipo de lectura: una pantalla que admite ciert
 
 ## Cierre del reto
 
-Guarda tus sentencias SQL y un registro de las versiones observadas en tu fork (sin credenciales). Puedes borrar la clave temporal ORD-DEMO-002 tras recoger las evidencias, pero conserva el registro SQL y ORD-DEMO-001 CONFIRMED para las comprobaciones.
+Guarda tus sentencias SQL y un registro de las versiones observadas en tu fork (sin credenciales). Conserva la clave ORD-DEMO-002 reconstruida hasta ejecutar el verificador ampliado; después podrás eliminarla. Conserva los registros SQL y ORD-DEMO-001 CONFIRMED para las comprobaciones.
 
 ## Verificación y debrief
 
@@ -333,7 +333,16 @@ Guarda tus sentencias SQL y un registro de las versiones observadas en tu fork (
 bash labs/p04-state-and-cache/scripts/verify.sh
 ```
 
-La verificación espera que el estado del pedido de prueba sea `CONFIRMED` en
+El verificador base conserva las comprobaciones originales. Para validar también el reto, ejecuta la comprobación ampliada **inmediatamente después de reconstruir la caché en CORE H**, con tu cantidad inicial de CORE G (no la cantidad final). Si ha expirado la clave, repuéblala desde la fila actual antes de verificarla.
+
+~~~bash
+# Sustituye 2 por la cantidad inicial que elegiste (1..5).
+bash labs/p04-state-and-cache/scripts/verify.sh --extended 2
+~~~
+
+Esta comprobación exige que ORD-DEMO-002 tenga versión 4 y cantidad inicial + 3, y que el JSON actual de Redis coincida con PostgreSQL. No demuestra por sí sola los pasos intermedios: entrega también las evidencias de conflicto y carrera. Después puedes borrar únicamente la clave ORD-DEMO-002.
+
+La verificación base espera que el estado del pedido de prueba sea `CONFIRMED` en
 PostgreSQL; que Redis esté operativo es suficiente después del experimento de
 pérdida de caché: **no se exige que una clave efímera exista**.
 
