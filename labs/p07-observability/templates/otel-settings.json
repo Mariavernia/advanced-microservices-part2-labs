@@ -1,0 +1,13 @@
+{
+  "endpoint": null,
+  "protocol": null,
+  "traces": null,
+  "metrics": null,
+  "logs": null,
+  "sampler": null,
+  "services": {
+    "inventory": null,
+    "orders": null,
+    "api-gateway": null
+  }
+}
