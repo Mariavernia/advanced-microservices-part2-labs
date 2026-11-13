@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ns="$(kubectl config view --minify -o jsonpath='{..namespace}')"
-[[ "$ns" =~ ^student[0-9]{2}$ ]] || { echo "Unexpected namespace $ns" >&2; exit 1; }
+[[ "$ns" =~ ^(student[0-9]{2}|instructor)$ ]] || { echo "Unexpected namespace $ns" >&2; exit 1; }
 if kubectl get secret orders-postgres-auth >/dev/null 2>&1; then
   echo "[PASS] Existing synthetic Postgres password reused in $ns."
 else

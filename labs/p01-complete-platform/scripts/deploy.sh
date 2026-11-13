@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NS="$(kubectl config view --minify -o jsonpath='{..namespace}')"
-[[ "$NS" =~ ^student[0-9]{2}$ || "$NS" == "demo" ]] || { echo "Unexpected namespace: $NS" >&2; exit 1; }
+[[ "$NS" =~ ^(student[0-9]{2}|instructor)$ || "$NS" == "demo" ]] || { echo "Unexpected namespace: $NS" >&2; exit 1; }
 [[ "$(kubectl auth can-i create deployments --namespace "$NS")" == "yes" ]] || { echo "Insufficient privileges in $NS" >&2; exit 1; }
 echo "Applying P01 resources in namespace $NS"
 kubectl apply -f "$ROOT/manifests/00-configmaps.yaml"

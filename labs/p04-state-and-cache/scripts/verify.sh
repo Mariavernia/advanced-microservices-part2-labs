@@ -4,7 +4,7 @@ pass=0; fail=0
 ok(){ printf '[PASS] %s\n' "$1"; pass=$((pass+1)); }
 bad(){ printf '[FAIL] %s\n' "$1"; fail=$((fail+1)); }
 ns="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || true)"
-[[ "$ns" =~ ^student[0-9]{2}$ ]] || { echo "Unexpected namespace $ns" >&2; exit 2; }
+[[ "$ns" =~ ^(student[0-9]{2}|instructor)$ ]] || { echo "Unexpected namespace $ns" >&2; exit 2; }
 kubectl get statefulset orders-db >/dev/null 2>&1 && ok "PostgreSQL StatefulSet exists" || bad "PostgreSQL StatefulSet missing"
 kubectl get deployment orders-cache >/dev/null 2>&1 && ok "Redis Deployment exists" || bad "Redis Deployment missing"
 kubectl get pvc dbdata-orders-db-0 >/dev/null 2>&1 && ok "PVC retained" || bad "PostgreSQL PVC missing"

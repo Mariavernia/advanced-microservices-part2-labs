@@ -3,7 +3,7 @@ set -euo pipefail
 # P01 uses a deliberately artificial, randomly generated provider token.
 # Never put authentic provider credentials in the student repository.
 NS="$(kubectl config view --minify -o jsonpath='{..namespace}')"
-[[ "$NS" =~ ^student[0-9]{2}$ || "$NS" == "demo" ]] || { echo "Unexpected namespace: $NS" >&2; exit 1; }
+[[ "$NS" =~ ^(student[0-9]{2}|instructor)$ || "$NS" == "demo" ]] || { echo "Unexpected namespace: $NS" >&2; exit 1; }
 TOKEN="$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
 kubectl create secret generic notifications-provider \
   --from-literal=NOTIFICATION_PROVIDER_TOKEN="$TOKEN" \

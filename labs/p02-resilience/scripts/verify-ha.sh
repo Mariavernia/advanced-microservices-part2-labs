@@ -5,7 +5,7 @@ PASS=0; FAIL=0
 ok() { printf '[PASS] %s\n' "$1"; PASS=$((PASS+1)); }
 bad() { printf '[FAIL] %s\n' "$1"; FAIL=$((FAIL+1)); }
 ns="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || true)"
-if [[ ! "$ns" =~ ^student[0-9]{2}$ && "$ns" != "demo" ]]; then
+if [[ ! "$ns" =~ ^(student[0-9]{2}|instructor)$ && "$ns" != "demo" ]]; then
   bad "Unexpected namespace: ${ns:-none}"
   exit 2
 fi

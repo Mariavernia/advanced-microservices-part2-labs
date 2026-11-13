@@ -5,7 +5,7 @@ FAIL=0
 ok(){ printf '[PASS] %s\n' "$1"; PASS=$((PASS+1)); }
 no(){ printf '[FAIL] %s\n' "$1"; FAIL=$((FAIL+1)); }
 NS="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || true)"
-[[ "$NS" =~ ^student[0-9]{2}$ || "$NS" == "demo" ]] || { no "Unrecognized namespace: $NS"; exit 1; }
+[[ "$NS" =~ ^(student[0-9]{2}|instructor)$ || "$NS" == "demo" ]] || { no "Unrecognized namespace: $NS"; exit 1; }
 echo "P01 verification in namespace $NS"
 for svc in inventory orders payments shipping notifications api-gateway; do
   if kubectl get deployment "$svc" >/dev/null 2>&1; then

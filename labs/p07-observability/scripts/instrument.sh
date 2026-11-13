@@ -8,7 +8,7 @@ set -euo pipefail
 # Separate phases keep working backend instrumentation if the Gateway fails.
 
 NS="$(kubectl config view --minify -o jsonpath='{..namespace}')"
-[[ "$NS" =~ ^student(0[1-9]|1[0-9]|2[0-3])$ ]] || { echo "[FAIL] Student namespace required"; exit 2; }
+[[ "$NS" =~ ^(student(0[1-9]|1[0-9]|2[0-3])|instructor)$ ]] || { echo "[FAIL] Student namespace required"; exit 2; }
 [[ "$(kubectl config current-context)" == aks-advms26-course ]] || { echo "[FAIL] Wrong cluster"; exit 2; }
 [[ "$(az account show --query user.name -o tsv)" == "$NS@training.cloudsecurityinpractice.com" ]] || { echo "[FAIL] Wrong student identity"; exit 2; }
 kubectl get deploy p07-jaeger -o json | jq -e '.status.readyReplicas==1' >/dev/null
