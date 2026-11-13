@@ -17,6 +17,8 @@ jobs:
           cache: maven
       - name: Maven tests for all modules
         run: mvn -B --no-transfer-progress test
+      - name: Test token-safe P05 request helper
+        run: python3 labs/p05-api-security/scripts/test-request.py
       - name: Bash syntax
         run: |
           find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r bash -n

@@ -39,7 +39,10 @@ public final class CourseRateLimitFilter implements GlobalFilter, Ordered {
         return exchange.getPrincipal()
                 .ofType(JwtAuthenticationToken.class)
                 .filter(JwtAuthenticationToken::isAuthenticated)
-                .map(auth -> auth.getToken().getSubject())
+                .map(auth -> {
+                    String subject = auth.getToken().getSubject();
+                    return subject == null ? "" : subject;
+                })
                 .defaultIfEmpty("")
                 .flatMap(subject -> {
                     if (subject.isBlank()) {

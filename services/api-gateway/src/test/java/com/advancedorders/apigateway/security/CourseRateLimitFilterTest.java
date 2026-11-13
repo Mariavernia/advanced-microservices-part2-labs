@@ -38,6 +38,16 @@ class CourseRateLimitFilterTest {
     }
 
     @Test
+    void jwtWithoutSubjectCannotReachProtectedRoute() {
+        var filter = new CourseRateLimitFilter(3, 10);
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/orders/preview").build());
+        var jwt = Jwt.withTokenValue("synthetic").header("alg", "RS256").claim("aud", List.of("advanced-orders-api")).build();
+        var authenticated = exchange.mutate().principal(Mono.just(new JwtAuthenticationToken(jwt, List.of()))).build();
+        filter.filter(authenticated, ex -> Mono.error(new AssertionError("unexpected upstream"))).block();
+        assertThat(authenticated.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void missingPrincipalCannotReachProtectedRoute() {
         var filter = new CourseRateLimitFilter(3, 10);
         var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/orders/preview").build());
