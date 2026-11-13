@@ -9,11 +9,28 @@ ns="$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null || tr
 if kubectl rollout status deployment/orders --timeout=120s >/dev/null 2>&1; then ok 'orders Deployment rollout ready'; else bad 'orders rollout not ready'; fi
 for probe in readinessProbe livenessProbe startupProbe; do
   value="$(kubectl get deployment orders -o jsonpath="{.spec.template.spec.containers[0].$probe.httpGet.path}" 2>/dev/null || true)"
-  [[ "$value" == /actuator/health* ]] && ok "$probe: $value" || bad "$probe missing or unexpected ($value)"
+  case "$probe" in
+    startupProbe) expected=/actuator/health ;;
+    readinessProbe) expected=/actuator/health/readiness ;;
+    livenessProbe) expected=/actuator/health/liveness ;;
+  esac
+  [[ "$value" == "$expected" ]] && ok "$probe: $value" || bad "$probe expected $expected ($value)"
 done
+cpu="$(kubectl get deployment orders -o jsonpath='{.spec.template.spec.containers[0].resources.requests.cpu}' 2>/dev/null || true)"
+[[ "$cpu" == 100m ]] && ok 'Orders CPU request is 100m' || bad "Orders CPU request expected 100m ($cpu)"
 kubectl get hpa orders >/dev/null 2>&1 && ok 'orders HPA configured' || bad 'orders HPA missing'
 max="$(kubectl get hpa orders -o jsonpath='{.spec.maxReplicas}' 2>/dev/null || true)"
 [[ "$max" == 3 ]] && ok 'HPA maximum is 3' || bad "HPA max not 3 ($max)"
+
+if kubectl get hpa orders -o json 2>/dev/null | jq -e '
+  .spec.minReplicas == 1 and .spec.maxReplicas == 3 and
+  .spec.scaleTargetRef.kind == "Deployment" and .spec.scaleTargetRef.name == "orders" and
+  any(.spec.metrics[]?; .type == "Resource" and .resource.name == "cpu" and
+      .resource.target.type == "Utilization" and .resource.target.averageUtilization == 60) and
+  .spec.behavior.scaleDown.stabilizationWindowSeconds == 120
+' >/dev/null 2>&1; then ok 'HPA CPU target, bounds and stabilization correct'
+else bad 'HPA expected CPU 60%, min=1, max=3, stabilization=120s'
+fi
 
 # A configured HPA can be inactive when Metrics Server is missing.
 # Allow time for the first metrics sample and HPA reconciliation loop.

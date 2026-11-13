@@ -1,0 +1,69 @@
+# Bounded HTTP load; only targets Orders inside the current namespace.
+# One Job, one Pod. Adjust WORKERS (1..4) in your working copy.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: p02-orders-load
+  labels:
+    app.kubernetes.io/name: p02-orders-load
+    app.kubernetes.io/part-of: advanced-orders
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 210
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: p02-orders-load
+        app.kubernetes.io/part-of: advanced-orders
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: load
+          image: advms26acr4366001b.azurecr.io/advancedorders/api-gateway:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+          env:
+            - name: WORKERS
+              value: "2"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              case "$WORKERS" in 1|2|3|4) ;; *) echo "WORKERS must be 1..4"; exit 2;; esac
+              url='http://orders:8080/api/orders/preview?sku=SKU-001&quantity=2'
+              end=$(( $(date +%s) + 150 ))
+              worker() {
+                ok=0
+                errors=0
+                while [ "$(date +%s)" -lt "$end" ]; do
+                  if code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 1 --max-time 2 "$url") && [ "$code" = 200 ]; then
+                    ok=$((ok + 1))
+                  else
+                    errors=$((errors + 1))
+                  fi
+                  sleep 0.1
+                done
+                printf 'worker=%s HTTP_200=%s errors=%s\n' "$1" "$ok" "$errors"
+              }
+              i=1
+              while [ "$i" -le "$WORKERS" ]; do
+                worker "$i" &
+                i=$((i + 1))
+              done
+              wait
