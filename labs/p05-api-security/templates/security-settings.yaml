@@ -1,0 +1,8 @@
+# Copy to work/p05 and complete the two non-secret identifiers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: p05-security-settings
+data:
+  OIDC_ISSUER_URI: "" # TODO: exact issuer from OIDC discovery
+  OIDC_AUDIENCE: "" # TODO: audience of the resource server

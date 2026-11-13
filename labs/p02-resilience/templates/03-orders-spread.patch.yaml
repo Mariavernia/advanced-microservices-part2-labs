@@ -1,0 +1,12 @@
+# STARTER: complete TODOs before patching.
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: null # TODO
+          minDomains: null # TODO
+          topologyKey: null # TODO
+          whenUnsatisfiable: null # TODO
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: null # TODO: target Orders

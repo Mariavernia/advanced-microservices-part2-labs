@@ -93,6 +93,29 @@ else
   fi
 fi
 
+# Kubernetes Ready without readinessProbe is not proof of HTTP readiness.
+# Verify the actual business contract, allowing the JVM to finish starting.
+echo 'Checking Orders business endpoint...'
+BUSINESS_OK=false
+BUSINESS_OUTPUT=""
+for attempt in $(seq 1 12); do
+  if BUSINESS_OUTPUT="$(kubectl exec deployment/orders -c orders -- \
+    curl -fsS --connect-timeout 3 --max-time 8 \
+    'http://127.0.0.1:8080/api/orders/preview?sku=SKU-001&quantity=2' 2>&1)" &&
+    jq -e '.sku == "SKU-001" and .quantity == 2 and .canBeFulfilled == true' <<<"$BUSINESS_OUTPUT" >/dev/null 2>&1; then
+    BUSINESS_OK=true
+    break
+  fi
+  if (( attempt < 12 )); then sleep 3; fi
+done
+if [[ "$BUSINESS_OK" == true ]]; then
+  pass "Orders preview returns the expected business result"
+else
+  fail "Orders preview not ready or business response incorrect"
+  printf '  Last response: %.1200s\n' "${BUSINESS_OUTPUT:-<empty>}"
+  echo '  Try: kubectl logs deployment/orders -c orders --tail=80'
+fi
+
 echo
 echo "Result: ${PASS} PASS / ${FAIL} FAIL"
 

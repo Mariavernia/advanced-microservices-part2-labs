@@ -191,6 +191,8 @@ In a second terminal:
 curl 'http://localhost:8080/api/orders/preview?sku=SKU-001&quantity=2' | jq
 ```
 
+If the first call fails with connection refused immediately after deployment, check the application logs and retry once Spring Boot is listening. P00 does not yet define HTTP readiness probes: Kubernetes Ready alone does not guarantee that the application is serving HTTP. Do not delete the Pods to fix a normal startup delay. If the error persists, investigate the logs and events.
+
 A successful response should contain fields similar to:
 
 ```json
@@ -387,7 +389,7 @@ Run:
 ./labs/p00-kubernetes-survival-kit/scripts/verify.sh
 ```
 
-A successful run should end with zero failed checks.
+A successful run should end with zero failed checks, including the Orders business endpoint. The verifier retries transient startup errors without changing workloads; explain any persistent error before continuing.
 
 The objective is not merely to get `PASS`. Be ready to explain **why** every check passes. Record four short notes — *predicted, changed, observed, concluded* — and one piece of evidence from Kubernetes or HTTP.
 

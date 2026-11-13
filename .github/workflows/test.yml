@@ -17,9 +17,11 @@ jobs:
           cache: maven
       - name: Maven tests for all modules
         run: mvn -B --no-transfer-progress test
+      - name: Test token-safe P05 request helper
+        run: python3 labs/p05-api-security/scripts/test-request.py
       - name: Bash syntax
         run: |
-          find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r bash -n
+          find scripts labs .devcontainer -name '*.sh' -type f -print0 | xargs -0 -r -n1 bash -n
       - name: Check shell scripts have executable Git mode
         run: |
           git ls-files --stage | awk '
@@ -29,6 +31,8 @@ jobs:
             }
             END { exit bad }
           '
+      - name: Test release policy helper (P03)
+        run: python3 labs/p03-rollouts-ci/scripts/test-release-policy.py
       - name: Parse Kubernetes YAML
         run: |
           python3 -m pip install --user pyyaml
